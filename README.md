@@ -22,3 +22,24 @@ Work in progress — built during reading week while learning Go.
 ## Stack
 Go (net/http, html/template, goroutines) · PostgreSQL · Ticketmaster
 Discovery API · Resend · Docker · Railway
+
+## Architecture
+
+One Go binary runs both the website and the background worker,
+each in its own goroutine. Deployed on Railway with a Postgres database.
+
+    User ──► web ──► store (Postgres) ◄── worker ──► ticketmaster
+                                            │
+                                            └──► notify ──► Email / Telegram
+
+## Project structure
+
+    cmd/soundcheck/        entry point: loads config, wires everything, starts web + worker
+    internal/config/       environment variables
+    internal/core/         shared types (Event, User) and interfaces (Source, Notifier)
+    internal/ticketmaster/ Ticketmaster Discovery API client (implements Source)
+    internal/store/        Postgres access
+    internal/web/          HTTP handlers and HTML templates
+    internal/worker/       periodic concert scan and on-sale reminders
+    internal/notify/       email and Telegram notifiers
+    migrations/            SQL schema
