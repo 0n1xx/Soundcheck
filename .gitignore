@@ -1,0 +1,11 @@
+# Binaries
+/soundcheck
+/bin/
+*.exe
+
+# Secrets
+.env
+
+# IDE / OS
+.idea/
+.DS_Store
