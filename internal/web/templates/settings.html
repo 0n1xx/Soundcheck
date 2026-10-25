@@ -1,0 +1,162 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Settings · Soundcheck</title>
+    <!-- Relative path for previewing the file today; Go will serve it from /static/ later -->
+    <link rel="stylesheet" href="../static/style.css">
+</head>
+<body>
+<!-- Icon set: drawn once here, reused below with <use href="#..."> -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+    <symbol id="i-folder" viewBox="0 0 24 24"><path d="M3 6.5A1.5 1.5 0 0 1 4.5 5h4.6l2 2h8.4A1.5 1.5 0 0 1 21 8.5v9a1.5 1.5 0 0 1-1.5 1.5h-15A1.5 1.5 0 0 1 3 17.5z" fill="none" stroke="currentColor" stroke-width="1.5"/></symbol>
+    <symbol id="i-doc" viewBox="0 0 24 24"><path d="M7 3h7l5 5v13H7zM14 3v5h5" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></symbol>
+    <symbol id="i-pin" viewBox="0 0 24 24"><path d="M12 21s-6-5.4-6-11a6 6 0 0 1 12 0c0 5.6-6 11-6 11z" fill="none" stroke="currentColor" stroke-width="1.5"/><circle cx="12" cy="10" r="2" fill="currentColor"/></symbol>
+    <symbol id="i-gear" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M12 2.5v3M12 18.5v3M2.5 12h3M18.5 12h3M5.3 5.3l2.1 2.1M16.6 16.6l2.1 2.1M5.3 18.7l2.1-2.1M16.6 7.4l2.1-2.1" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></symbol>
+    <symbol id="i-disk" viewBox="0 0 24 24"><rect x="3" y="7" width="18" height="10" rx="2" fill="#9aa0a6"/><circle cx="17" cy="12" r="1.2" fill="#5ef08a"/></symbol>
+</svg>
+
+<div class="window">
+    <!-- Sidebar for logged-in users -->
+    <aside class="sidebar">
+        <div class="lights" aria-hidden="true"><span></span><span></span><span></span></div>
+
+        <nav aria-label="Main">
+            <p class="sidebar__title">Library</p>
+            <a class="sidebar__item" href="/shows"><svg><use href="#i-folder"/></svg>Upcoming shows<span class="badge">3</span></a>
+            <a class="sidebar__item" href="/artists"><svg><use href="#i-folder"/></svg>Artists<span class="badge">3</span></a>
+
+            <p class="sidebar__title">Location</p>
+            <a class="sidebar__item" href="/settings#city"><svg><use href="#i-pin"/></svg>Toronto</a>
+
+            <p class="sidebar__title">Account</p>
+            <a class="sidebar__item is-active" href="/settings" aria-current="page"><svg><use href="#i-gear"/></svg>Settings</a>
+            <form method="post" action="/logout">
+                <button class="sidebar__item" type="submit"><svg><use href="#i-doc"/></svg>Log out</button>
+            </form>
+        </nav>
+    </aside>
+
+    <main class="pane">
+        <header class="toolbar">
+            <div class="toolbar__arrows" aria-hidden="true"><span>‹</span><span>›</span></div>
+            <h1>Settings</h1>
+        </header>
+
+        <!-- Each group of settings is its own small window, like old system preferences -->
+        <section class="content settings">
+
+            <!-- Email -->
+            <section class="dialog" aria-labelledby="email-title">
+                <header class="dialog__title">
+                    <div class="lights" aria-hidden="true"><span></span><span></span><span></span></div>
+                    <h2 id="email-title" class="dialog__heading">Email</h2>
+                </header>
+                <section class="dialog__body">
+                    <form method="post" action="/settings/email">
+                        <div class="field">
+                            <label for="email">Email address</label>
+                            <input id="email" name="email" type="email" value="vlad@example.com" autocomplete="email" required>
+                        </div>
+                        <button class="button" type="submit">Save email</button>
+                    </form>
+                </section>
+            </section>
+
+            <!-- Password (hidden later for people who signed up with Google) -->
+            <section class="dialog" aria-labelledby="password-title">
+                <header class="dialog__title">
+                    <div class="lights" aria-hidden="true"><span></span><span></span><span></span></div>
+                    <h2 id="password-title" class="dialog__heading">Password</h2>
+                </header>
+                <section class="dialog__body">
+                    <form method="post" action="/settings/password">
+                        <div class="field">
+                            <label for="current-password">Current password</label>
+                            <input id="current-password" name="current_password" type="password" autocomplete="current-password" required>
+                        </div>
+                        <div class="field">
+                            <label for="new-password">New password</label>
+                            <input id="new-password" name="new_password" type="password" autocomplete="new-password" minlength="8" required>
+                            <small>At least 8 characters</small>
+                        </div>
+                        <button class="button" type="submit">Change password</button>
+                    </form>
+                </section>
+            </section>
+
+            <!-- City; the sidebar location link jumps here via #city -->
+            <section class="dialog" id="city" aria-labelledby="city-title">
+                <header class="dialog__title">
+                    <div class="lights" aria-hidden="true"><span></span><span></span><span></span></div>
+                    <h2 id="city-title" class="dialog__heading">Location</h2>
+                </header>
+                <section class="dialog__body">
+                    <form class="inline-form" method="post" action="/settings/city">
+                        <input name="city" value="Toronto" aria-label="City" required>
+                        <button class="button" type="submit">Save</button>
+                    </form>
+                    <p class="hint">We look for shows in this city.</p>
+                </section>
+            </section>
+
+            <!-- Which emails to send -->
+            <section class="dialog" aria-labelledby="notify-title">
+                <header class="dialog__title">
+                    <div class="lights" aria-hidden="true"><span></span><span></span><span></span></div>
+                    <h2 id="notify-title" class="dialog__heading">Notifications</h2>
+                </header>
+                <section class="dialog__body">
+                    <form method="post" action="/settings/notifications">
+                        <fieldset class="checks">
+                            <legend class="visually-hidden">Email me when</legend>
+                            <label class="check"><input type="checkbox" name="notify_new" checked> A new show is announced</label>
+                            <label class="check"><input type="checkbox" name="notify_24h" checked> 24 hours before tickets go on sale</label>
+                            <label class="check"><input type="checkbox" name="notify_15m" checked> 15 minutes before tickets go on sale</label>
+                            <label class="check"><input type="checkbox" name="notify_changes" checked> A show is cancelled or rescheduled</label>
+                        </fieldset>
+                        <button class="button" type="submit">Save notifications</button>
+                    </form>
+                </section>
+            </section>
+
+            <!-- Optional second channel, works from the bonus day -->
+            <section class="dialog" aria-labelledby="telegram-title">
+                <header class="dialog__title">
+                    <div class="lights" aria-hidden="true"><span></span><span></span><span></span></div>
+                    <h2 id="telegram-title" class="dialog__heading">Telegram</h2>
+                </header>
+                <section class="dialog__body">
+                    <p class="hint hint--top">Get the same alerts as instant messages in Telegram.</p>
+                    <a class="button" href="/settings/telegram">Connect Telegram</a>
+                </section>
+            </section>
+
+            <!-- Delete account: the checkbox replaces a JavaScript "Are you sure?" -->
+            <section class="dialog dialog--danger" aria-labelledby="delete-title">
+                <header class="dialog__title">
+                    <div class="lights" aria-hidden="true"><span></span><span></span><span></span></div>
+                    <h2 id="delete-title" class="dialog__heading">Delete account</h2>
+                </header>
+                <section class="dialog__body">
+                    <form method="post" action="/account/delete">
+                        <p class="hint hint--top">This removes your email, city and artists for good.</p>
+                        <label class="check"><input type="checkbox" name="confirm" required> I understand this can't be undone</label>
+                        <button class="button button--danger" type="submit">Delete my account</button>
+                    </form>
+                </section>
+            </section>
+
+        </section>
+
+        <footer class="pathbar">
+            <span><svg><use href="#i-disk"/></svg> Soundcheck HD</span>
+            <span>Users</span>
+            <span>vlad</span>
+            <span>Settings</span>
+        </footer>
+    </main>
+</div>
+</body>
+</html>

@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Upcoming shows · Soundcheck</title>
+    <!-- Relative path for previewing the file today; Go will serve it from /static/ later -->
+    <link rel="stylesheet" href="../static/style.css">
+</head>
+<body>
+<!-- Icon set: drawn once here, reused below with <use href="#..."> -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+    <symbol id="i-folder" viewBox="0 0 24 24"><path d="M3 6.5A1.5 1.5 0 0 1 4.5 5h4.6l2 2h8.4A1.5 1.5 0 0 1 21 8.5v9a1.5 1.5 0 0 1-1.5 1.5h-15A1.5 1.5 0 0 1 3 17.5z" fill="none" stroke="currentColor" stroke-width="1.5"/></symbol>
+    <symbol id="i-doc" viewBox="0 0 24 24"><path d="M7 3h7l5 5v13H7zM14 3v5h5" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></symbol>
+    <symbol id="i-ticket" viewBox="0 0 24 24"><path d="M4 7h16v3a2 2 0 0 0 0 4v3H4v-3a2 2 0 0 0 0-4z" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/><path d="M14 7v10" stroke="currentColor" stroke-width="1.5" stroke-dasharray="2 2"/></symbol>
+    <symbol id="i-pin" viewBox="0 0 24 24"><path d="M12 21s-6-5.4-6-11a6 6 0 0 1 12 0c0 5.6-6 11-6 11z" fill="none" stroke="currentColor" stroke-width="1.5"/><circle cx="12" cy="10" r="2" fill="currentColor"/></symbol>
+    <symbol id="i-gear" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M12 2.5v3M12 18.5v3M2.5 12h3M18.5 12h3M5.3 5.3l2.1 2.1M16.6 16.6l2.1 2.1M5.3 18.7l2.1-2.1M16.6 7.4l2.1-2.1" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></symbol>
+    <symbol id="i-disk" viewBox="0 0 24 24"><rect x="3" y="7" width="18" height="10" rx="2" fill="#9aa0a6"/><circle cx="17" cy="12" r="1.2" fill="#5ef08a"/></symbol>
+</svg>
+
+<div class="window">
+    <!-- Sidebar for logged-in users -->
+    <aside class="sidebar">
+        <div class="lights" aria-hidden="true"><span></span><span></span><span></span></div>
+
+        <nav aria-label="Main">
+            <p class="sidebar__title">Library</p>
+            <a class="sidebar__item is-active" href="/shows" aria-current="page"><svg><use href="#i-folder"/></svg>Upcoming shows<span class="badge">3</span></a>
+            <a class="sidebar__item" href="/artists"><svg><use href="#i-folder"/></svg>Artists<span class="badge">3</span></a>
+
+            <p class="sidebar__title">Location</p>
+            <a class="sidebar__item" href="/settings#city"><svg><use href="#i-pin"/></svg>Toronto</a>
+
+            <p class="sidebar__title">Account</p>
+            <a class="sidebar__item" href="/settings"><svg><use href="#i-gear"/></svg>Settings</a>
+            <form method="post" action="/logout">
+                <button class="sidebar__item" type="submit"><svg><use href="#i-doc"/></svg>Log out</button>
+            </form>
+        </nav>
+    </aside>
+
+    <main class="pane">
+        <header class="toolbar">
+            <div class="toolbar__arrows" aria-hidden="true"><span>‹</span><span>›</span></div>
+            <h1>Upcoming shows</h1>
+        </header>
+
+        <section class="content">
+            <!-- Sample rows for the mockup; Go will fill these in from the database -->
+            <table class="list">
+                <caption class="visually-hidden">Upcoming shows near Toronto</caption>
+                <thead>
+                <tr>
+                    <th scope="col">Name</th>
+                    <th scope="col">Venue</th>
+                    <th scope="col">Date</th>
+                    <th scope="col">Tickets</th>
+                    <th scope="col"><span class="visually-hidden">Link</span></th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr>
+                    <td><span class="name"><svg><use href="#i-ticket"/></svg>Sample Artist</span></td>
+                    <td class="muted">History, Toronto</td>
+                    <td class="muted"><time datetime="2026-11-14T20:00">Sat, Nov 14 · 20:00</time></td>
+                    <td><span class="status">On sale now</span></td>
+                    <td><a class="button" href="#">Get tickets</a></td>
+                </tr>
+                <tr>
+                    <td><span class="name"><svg><use href="#i-ticket"/></svg>Another Artist</span></td>
+                    <td class="muted">Rebel, Toronto</td>
+                    <td class="muted"><time datetime="2026-12-03T19:30">Thu, Dec 3 · 19:30</time></td>
+                    <td><span class="status status--soon">On sale Fri, 10:00</span></td>
+                    <td><a class="button" href="#">Get tickets</a></td>
+                </tr>
+                <tr>
+                    <td><span class="name"><svg><use href="#i-ticket"/></svg>Trans-Siberian Orchestra</span></td>
+                    <td class="muted">Scotiabank Arena, Toronto</td>
+                    <td class="muted"><time datetime="2026-12-29T19:30">Tue, Dec 29 · 19:30</time></td>
+                    <td><span class="status">On sale now</span></td>
+                    <td><a class="button" href="#">Get tickets</a></td>
+                </tr>
+                </tbody>
+            </table>
+
+            <!-- Empty state, shown instead of the table when there are no shows:
+            <p class="empty">No upcoming shows for your artists yet. We'll email you the moment one is announced.</p>
+            -->
+        </section>
+
+        <footer class="pathbar">
+            <span><svg><use href="#i-disk"/></svg> Soundcheck HD</span>
+            <span>Users</span>
+            <span>vlad</span>
+            <span>Upcoming shows</span>
+        </footer>
+    </main>
+</div>
+</body>
+</html>

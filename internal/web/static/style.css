@@ -1,0 +1,934 @@
+/* ==========================================================================
+   Soundcheck: shared styles for all pages
+   A classic desktop-window look: sidebar, title bar, path bar, dialogs.
+
+   Contents
+   1.  Design tokens
+   2.  Base
+   3.  Window layout: sidebar, pane, toolbar, path bar
+   4.  Form controls: inputs, checkboxes and buttons
+   5.  Dialog and alert
+   6.  Page: welcome
+   7.  Page: upcoming shows
+   8.  Page: artists
+   9.  Page: settings
+   10. Page: privacy (document)
+   11. Responsive
+   ========================================================================== */
+
+
+/* 1. Design tokens
+   ========================================================================== */
+
+:root {
+    /* Colors */
+    --color-desk: #e9e9e9;        /* content area */
+    --color-sidebar: #e4e2e2;     /* sidebar background */
+    --color-toolbar: #f8f4f2;     /* warm title bar */
+    --color-surface: #ffffff;     /* lists, inputs, documents */
+    --color-dialog: #f6f6f6;      /* dialog body */
+    --color-row: #f4f4f4;         /* zebra stripe */
+    --color-line: #c9c7c7;        /* window borders */
+    --color-line-soft: #d6d6d6;   /* borders inside content */
+    --color-text: #2b2b2b;
+    --color-text-soft: #555555;
+    --color-muted: #8a8a8a;
+    --color-folder: #5c9ee6;      /* folder icons */
+    --color-select: #d3dbe8;      /* selected sidebar item */
+    --color-accent: #3a7bd5;      /* links, focus, default button */
+    --color-success: #2b8a3e;     /* on sale now */
+    --color-warning: #b26a00;     /* on sale soon */
+    --color-danger: #c0392b;      /* remove, delete */
+
+    /* Typography: the system font of old desktop Macs, with fallbacks */
+    --font: "Lucida Grande", "Helvetica Neue", Helvetica, Arial, sans-serif;
+    --text-xs: 0.8rem;
+    --text-sm: 0.875rem;
+    --text-md: 0.9375rem;         /* 15px body text */
+    --text-lg: 1.125rem;
+    --text-xl: clamp(2.25rem, 5vw, 3.25rem);
+
+    /* Spacing scale */
+    --space-1: 0.25rem;
+    --space-2: 0.5rem;
+    --space-3: 0.75rem;
+    --space-4: 1rem;
+    --space-5: 1.5rem;
+    --space-6: 2rem;
+    --space-7: 3rem;
+    --space-8: 4rem;
+
+    /* Shapes */
+    --radius-sm: 0.3125rem;       /* inputs */
+    --radius-md: 0.375rem;        /* buttons, lists */
+    --radius-lg: 0.625rem;        /* dialogs */
+    --shadow-control: 0 1px 1px rgb(0 0 0 / 0.08);
+    --shadow-inset: inset 0 1px 2px rgb(0 0 0 / 0.08);
+    --shadow-dialog: 0 1.125rem 2.8rem rgb(0 0 0 / 0.18), 0 0.125rem 0.375rem rgb(0 0 0 / 0.08);
+    --shadow-paper: 0 0.25rem 1rem rgb(0 0 0 / 0.08);
+    --focus-ring: 0 0 0 0.1875rem rgb(58 123 213 / 0.45);
+
+    /* Layout */
+    --sidebar-width: 17rem;
+    --dialog-width: 24rem;
+}
+
+
+/* 2. Base
+   ========================================================================== */
+
+*,
+*::before,
+*::after {
+    box-sizing: border-box;
+}
+
+body {
+    margin: 0;
+    color: var(--color-text);
+    background: var(--color-desk);
+    font: 400 var(--text-md) / 1.5 var(--font);
+}
+
+a {
+    color: var(--color-accent);
+}
+
+/* One focus style for everything that can be reached with the keyboard */
+:focus-visible {
+    outline: none;
+    box-shadow: var(--focus-ring);
+}
+
+/* Icons inherit the folder blue unless a block overrides it */
+svg {
+    flex-shrink: 0;
+    color: var(--color-folder);
+}
+
+/* Hidden on screen but still read by screen readers */
+.visually-hidden {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+}
+
+
+/* 3. Window layout
+   ========================================================================== */
+
+/* The whole page is one window: sidebar on the left, pane on the right */
+.window {
+    display: flex;
+    min-height: 100vh;
+}
+
+/* Sidebar ------------------------------------------------------------------ */
+
+.sidebar {
+    width: var(--sidebar-width);
+    flex-shrink: 0;
+    padding: var(--space-5) var(--space-4);
+    background: var(--color-sidebar);
+    border-right: 1px solid var(--color-line);
+}
+
+/* Red, yellow and green window buttons */
+.lights {
+    display: flex;
+    gap: 0.5em;
+    margin: 0 0 var(--space-6) var(--space-2);
+    font-size: 0.8125rem;         /* sets the dot size: 1em = 13px */
+}
+
+.lights span {
+    width: 1em;
+    height: 1em;
+    border-radius: 50%;
+}
+
+.lights span:nth-child(1) { background: #fe5f57; }
+.lights span:nth-child(2) { background: #febc2e; }
+.lights span:nth-child(3) { background: #28c840; }
+
+.sidebar__title {
+    margin: var(--space-5) 0 var(--space-1) var(--space-2);
+    color: var(--color-muted);
+    font-size: var(--text-sm);
+    font-weight: 600;
+}
+
+.sidebar__title:first-of-type {
+    margin-top: 0;
+}
+
+/* Works for links, plain text and logout buttons alike */
+.sidebar__item {
+    display: flex;
+    align-items: center;
+    gap: 0.6em;
+    width: 100%;
+    padding: 0.35em 0.5em;
+    color: inherit;
+    font: inherit;
+    text-align: left;
+    text-decoration: none;
+    background: none;
+    border: 0;
+    border-radius: var(--radius-md);
+    cursor: pointer;
+}
+
+.sidebar__item:hover { background: rgb(0 0 0 / 0.05); }
+.sidebar__item.is-active { background: var(--color-select); }
+
+.sidebar__item svg {
+    width: 1.2em;
+    height: 1.2em;
+}
+
+/* Small counter on the right, like item counts in a file browser */
+.badge {
+    margin-left: auto;
+    padding: 0 0.45em;
+    color: var(--color-muted);
+    font-size: var(--text-xs);
+    background: rgb(0 0 0 / 0.08);
+    border-radius: var(--radius-sm);
+}
+
+/* Pane --------------------------------------------------------------------- */
+
+.pane {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-width: 0;                 /* lets wide content shrink instead of overflowing */
+}
+
+.toolbar {
+    display: flex;
+    align-items: center;
+    gap: var(--space-4);
+    padding: var(--space-3) var(--space-5);
+    background: var(--color-toolbar);
+    border-bottom: 1px solid var(--color-line);
+}
+
+/* Back and forward arrows, decorative only */
+.toolbar__arrows {
+    display: flex;
+    gap: 0.5em;
+    color: #b5b5b5;
+    font-size: 1.4rem;
+    line-height: 1;
+}
+
+.toolbar h1 {
+    margin: 0;
+    color: #4a4a4a;
+    font-size: var(--text-lg);
+    font-weight: 600;
+}
+
+.toolbar__right {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    margin-left: auto;
+}
+
+.content {
+    flex: 1;
+    padding: var(--space-5);
+}
+
+/* Path bar at the bottom: Soundcheck HD > Users > vlad > ... */
+.pathbar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.35em;
+    padding: 0.45em var(--space-5);
+    color: var(--color-text-soft);
+    font-size: var(--text-sm);
+    border-top: 1px solid var(--color-line);
+}
+
+.pathbar svg {
+    width: 1.1em;
+    height: 1.1em;
+}
+
+.pathbar span + span::before {
+    content: "›";
+    margin-right: 0.35em;
+    color: var(--color-muted);
+}
+
+
+/* 4. Form controls
+   ========================================================================== */
+
+input,
+textarea {
+    padding: 0.45em 0.6em;
+    color: var(--color-text);
+    font: inherit;
+    background: var(--color-surface);
+    border: 1px solid #b9b9b9;
+    border-radius: var(--radius-sm);
+    box-shadow: var(--shadow-inset);
+}
+
+input:focus-visible,
+textarea:focus-visible {
+    border-color: var(--color-accent);
+    box-shadow: var(--shadow-inset), var(--focus-ring);
+}
+
+.field {
+    display: grid;
+    gap: var(--space-1);
+    margin-bottom: var(--space-4);
+}
+
+.field label {
+    font-size: var(--text-sm);
+    font-weight: 600;
+}
+
+.field small {
+    color: var(--color-muted);
+    font-size: var(--text-xs);
+}
+
+/* Input and button on one line */
+.inline-form {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+}
+
+.inline-form input {
+    width: 12rem;
+}
+
+/* Small helper text under (or above, with --top) a form */
+.hint {
+    margin: var(--space-3) 0 0;
+    color: var(--color-text-soft);
+    font-size: var(--text-sm);
+}
+
+.hint--top {
+    margin: 0 0 var(--space-4);
+}
+
+/* Checkboxes: a group in a fieldset, each with its label */
+.checks {
+    display: grid;
+    gap: var(--space-2);
+    margin: 0 0 var(--space-4);
+    padding: 0;
+    border: 0;
+}
+
+.check {
+    display: flex;
+    align-items: center;
+    gap: 0.6em;
+    font-size: var(--text-sm);
+    cursor: pointer;
+}
+
+/* Undo the text-input styles for checkboxes and tint them blue */
+.check input {
+    width: 1.1em;
+    height: 1.1em;
+    margin: 0;
+    padding: 0;
+    box-shadow: none;
+    accent-color: var(--color-accent);
+}
+
+/* Buttons: light gradient, like classic desktop buttons */
+.button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5em;
+    padding: 0.4em 1em;
+    color: var(--color-text);
+    font: 500 var(--text-md) / 1.4 var(--font);
+    text-decoration: none;
+    background: linear-gradient(#ffffff, #ececec);
+    border: 1px solid #b3b3b3;
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-control);
+    cursor: pointer;
+}
+
+.button:active {
+    background: linear-gradient(#e6e6e6, #f6f6f6);
+}
+
+/* The main action of a form, in blue */
+.button--default {
+    color: #fff;
+    background: linear-gradient(#6cb3fa, #2a7fe0);
+    border-color: #2569c2;
+}
+
+.button--default:active {
+    background: linear-gradient(#2a7fe0, #4c9cf0);
+}
+
+/* Destructive action, in red */
+.button--danger {
+    color: #fff;
+    background: linear-gradient(#f07a6c, #d2412f);
+    border-color: #b0362a;
+}
+
+.button--danger:active {
+    background: linear-gradient(#d2412f, #e2604f);
+}
+
+.button--wide {
+    width: 100%;
+}
+
+.button svg {
+    width: 1.1em;
+    height: 1.1em;
+}
+
+/* Looks like a link, behaves like a form button (Remove, Log out) */
+.link-button {
+    padding: 0;
+    color: var(--color-accent);
+    font: inherit;
+    background: none;
+    border: 0;
+    cursor: pointer;
+}
+
+.link-button:hover {
+    text-decoration: underline;
+}
+
+
+/* 5. Dialog and alert
+   ========================================================================== */
+
+/* A small window inside the pane */
+.dialog {
+    width: 100%;
+    max-width: var(--dialog-width);
+    overflow: hidden;
+    background: var(--color-dialog);
+    border: 1px solid #b9b9b9;
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-dialog);
+}
+
+.dialog__title {
+    position: relative;
+    padding: 0.6em var(--space-4);
+    color: #4a4a4a;
+    font-size: var(--text-sm);
+    font-weight: 600;
+    text-align: center;
+    background: linear-gradient(#f3f1f0, #e2e0df);
+    border-bottom: 1px solid #c4c2c1;
+}
+
+/* The dialog heading looks like plain title-bar text */
+.dialog__heading {
+    margin: 0;
+    font: inherit;
+    letter-spacing: normal;
+}
+
+/* Smaller window buttons pinned to the left of the title */
+.dialog__title .lights {
+    position: absolute;
+    top: 50%;
+    left: var(--space-3);
+    margin: 0;
+    font-size: 0.6875rem;         /* 11px dots */
+    transform: translateY(-50%);
+}
+
+.dialog__body {
+    padding: var(--space-5);
+}
+
+/* Danger dialog: same window, red-tinted title bar */
+.dialog--danger .dialog__title {
+    color: var(--color-danger);
+    background: linear-gradient(#fbefed, #f1dcd9);
+}
+
+/* "or" with a line on each side */
+.divider {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    margin: var(--space-4) 0;
+    color: var(--color-muted);
+    font-size: var(--text-sm);
+}
+
+.divider::before,
+.divider::after {
+    content: "";
+    flex: 1;
+    border-top: 1px solid #d0d0d0;
+}
+
+/* "Already have an account? Log in" */
+.switch {
+    margin: var(--space-4) 0 0;
+    color: var(--color-text-soft);
+    font-size: var(--text-sm);
+    text-align: center;
+}
+
+/* Centers a dialog in the pane (login, not found) */
+.centered {
+    display: grid;
+    place-items: center;
+    padding: var(--space-7) var(--space-4);
+}
+
+/* Alert: big icon on the left, message and button on the right */
+.alert {
+    display: grid;
+    grid-template-columns: 4.5rem 1fr;
+    gap: var(--space-4);
+    align-items: start;
+}
+
+.alert__icon {
+    width: 4.5rem;
+    height: 3.75rem;
+}
+
+.alert__title {
+    margin: 0 0 var(--space-1);
+    font-size: var(--text-md);
+    font-weight: 700;
+}
+
+.alert__text {
+    margin: 0;
+    color: var(--color-text-soft);
+    font-size: var(--text-sm);
+}
+
+.alert__actions {
+    margin: var(--space-4) 0 0;
+}
+
+
+/* 6. Page: welcome
+   ========================================================================== */
+
+/* Read-me text and the sign-up dialog; side by side on wide screens */
+.welcome {
+    display: grid;
+    gap: 2.5rem;
+    align-items: start;
+    max-width: 62rem;
+    padding: var(--space-5) var(--space-2);
+}
+
+.welcome h2:not(.dialog__heading) {
+    margin: 0 0 var(--space-3);
+    font-size: var(--text-xl);
+    font-weight: 700;
+    line-height: 1.05;
+    letter-spacing: -0.02em;
+}
+
+.lede {
+    max-width: 32rem;
+    margin: 0 0 var(--space-6);
+    color: var(--color-text-soft);
+    font-size: var(--text-lg);
+}
+
+/* How it works: three steps shown as files in a folder */
+.files {
+    max-width: 32rem;
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+    list-style: none;
+    background: var(--color-surface);
+    border: 1px solid var(--color-line-soft);
+    border-radius: var(--radius-md);
+}
+
+.files li {
+    display: grid;
+    grid-template-columns: 1.4rem 1fr;
+    gap: var(--space-3);
+    align-items: start;
+    padding: var(--space-3) var(--space-4);
+}
+
+.files li:nth-child(even) {
+    background: var(--color-row);
+}
+
+.files svg {
+    width: 1.25rem;
+    height: 1.25rem;
+    margin-top: 0.125rem;
+}
+
+.files strong {
+    display: block;
+    font-weight: 600;
+}
+
+.files span {
+    color: #666;
+    font-size: var(--text-sm);
+}
+
+
+/* 7. Page: upcoming shows (list view)
+   ========================================================================== */
+
+.list {
+    width: 100%;
+    overflow: hidden;
+    border-collapse: collapse;
+    background: var(--color-surface);
+    border: 1px solid var(--color-line-soft);
+    border-radius: var(--radius-md);
+}
+
+.list th {
+    padding: 0.5em 1em;
+    color: #666;
+    font-size: var(--text-sm);
+    font-weight: 600;
+    text-align: left;
+    background: #f7f7f7;
+    border-bottom: 1px solid #dcdcdc;
+}
+
+.list td {
+    padding: var(--space-3) var(--space-4);
+    vertical-align: middle;
+}
+
+.list tbody tr:nth-child(even) {
+    background: var(--color-row);
+}
+
+.list .name {
+    display: flex;
+    align-items: center;
+    gap: 0.6em;
+    font-weight: 600;
+}
+
+.list .name svg {
+    width: 1.2em;
+    height: 1.2em;
+}
+
+.list .muted {
+    color: #666;
+}
+
+.status {
+    color: var(--color-success);
+    font-size: var(--text-sm);
+}
+
+.status--soon {
+    color: var(--color-warning);
+}
+
+/* Shown when a list is empty */
+.empty {
+    padding: var(--space-7) var(--space-4);
+    color: #666;
+    text-align: center;
+}
+
+
+/* 8. Page: artists (icon view)
+   ========================================================================== */
+
+.folders {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(8.5rem, 1fr));
+    gap: var(--space-5) var(--space-4);
+    margin: 0;
+    padding: var(--space-2);
+    list-style: none;
+}
+
+.folder {
+    display: grid;
+    justify-items: center;
+    gap: var(--space-1);
+    text-align: center;
+}
+
+.folder svg {
+    width: 4.5rem;
+    height: 3.75rem;
+}
+
+.folder__name {
+    font-size: var(--text-sm);
+    line-height: 1.3;
+}
+
+.folder .link-button {
+    color: var(--color-muted);
+    font-size: var(--text-xs);
+}
+
+.folder .link-button:hover {
+    color: var(--color-danger);
+}
+
+
+/* 9. Page: settings
+   ========================================================================== */
+
+/* Small windows in a grid, like an old system preferences panel */
+.settings {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, 21rem), 1fr));
+    gap: var(--space-5);
+    align-content: start;
+    align-items: start;
+}
+
+.settings .dialog {
+    max-width: none;
+}
+
+/* Let the city field grow inside its window */
+.settings .inline-form input {
+    flex: 1;
+    width: auto;
+    min-width: 0;
+}
+
+.dialog--danger .check {
+    margin-bottom: var(--space-4);
+}
+
+
+/* 10. Page: privacy (a text document open in a window)
+   ========================================================================== */
+
+.document {
+    max-width: 44rem;
+    margin: 0 auto;
+    padding: var(--space-6) var(--space-7);
+    background: var(--color-surface);
+    border: 1px solid var(--color-line-soft);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-paper);
+}
+
+.document h2 {
+    margin: 0;
+    font-size: 1.75rem;
+    line-height: 1.2;
+}
+
+.document h3 {
+    margin: var(--space-6) 0 var(--space-2);
+    font-size: var(--text-lg);
+}
+
+.document p,
+.document ul {
+    margin: 0 0 var(--space-3);
+    line-height: 1.65;
+}
+
+.document ul {
+    padding-left: 1.25em;
+}
+
+.document li + li {
+    margin-top: var(--space-1);
+}
+
+.document__meta {
+    color: var(--color-muted);
+    font-size: var(--text-sm);
+}
+
+
+/* 11. Responsive
+   Base styles above are for desktop; these blocks adjust them as the screen
+   gets narrower. Breakpoints are in em so they follow the user's font size:
+   75em = 1200px, 68.75em = 1100px, 47.5em = 760px, 32.5em = 520px.
+   ========================================================================== */
+
+/* Wide screens: welcome text and sign-up dialog side by side */
+@media (min-width: 75em) {
+    .welcome {
+        grid-template-columns: 1fr var(--dialog-width);
+        gap: var(--space-8);
+        padding: var(--space-7) var(--space-5);
+    }
+}
+
+/* Tablets and small laptops: narrower sidebar, shows become cards */
+@media (max-width: 68.75em) {
+    :root {
+        --sidebar-width: 13.5rem;
+    }
+
+    .list thead {
+        display: none;
+    }
+
+    .list tr {
+        display: grid;
+        grid-template-columns: 1fr auto;
+        align-items: center;
+        gap: 0.15rem var(--space-4);
+        padding: var(--space-3) var(--space-4);
+    }
+
+    .list td {
+        grid-column: 1;
+        padding: 0;
+    }
+
+    /* The "Get tickets" button sits on the right of the card */
+    .list td:last-child {
+        grid-column: 2;
+        grid-row: 1 / span 4;
+    }
+}
+
+/* Phones and portrait tablets: the sidebar becomes a scrollable top bar */
+@media (max-width: 47.5em) {
+    .window {
+        flex-direction: column;
+    }
+
+    .sidebar {
+        display: flex;
+        align-items: center;
+        gap: var(--space-1);
+        width: auto;
+        overflow-x: auto;
+        padding: var(--space-2) var(--space-3);
+        border-right: 0;
+        border-bottom: 1px solid var(--color-line);
+    }
+
+    /* Links sit inside <nav>, so it has to line them up too */
+    .sidebar nav {
+        display: flex;
+        align-items: center;
+        gap: var(--space-1);
+    }
+
+    .sidebar form {
+        flex-shrink: 0;
+    }
+
+    .sidebar .lights {
+        margin: 0 var(--space-3) 0 var(--space-1);
+    }
+
+    .sidebar__title {
+        display: none;
+    }
+
+    /* Bigger tap targets */
+    .sidebar__item {
+        width: auto;
+        padding: 0.5em 0.75em;
+        white-space: nowrap;
+    }
+
+    .toolbar {
+        flex-wrap: wrap;
+    }
+
+    .toolbar__right {
+        width: 100%;
+        margin-left: 0;
+    }
+
+    .inline-form {
+        width: 100%;
+    }
+
+    .inline-form input {
+        flex: 1;
+        width: auto;
+        min-width: 0;
+    }
+
+    .content {
+        padding: var(--space-4);
+    }
+
+    .centered {
+        padding: var(--space-5) 0;
+    }
+
+    .document {
+        padding: var(--space-5);
+    }
+}
+
+/* Small phones: stack the last side-by-side pieces */
+@media (max-width: 32.5em) {
+    .welcome {
+        padding: var(--space-2) 0;
+    }
+
+    .dialog__body {
+        padding: var(--space-5) var(--space-4);
+    }
+
+    .list td:last-child {
+        grid-column: 1;
+        grid-row: auto;
+        margin-top: var(--space-2);
+    }
+
+    .folders {
+        grid-template-columns: repeat(auto-fill, minmax(6.5rem, 1fr));
+    }
+
+    .alert {
+        grid-template-columns: 1fr;
+        justify-items: start;
+    }
+}
+
+/* Respect users who turn off animations (none used now, kept for later) */
+@media (prefers-reduced-motion: reduce) {
+    * {
+        transition: none !important;
+        animation: none !important;
+    }
+}
