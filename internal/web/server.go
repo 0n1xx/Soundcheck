@@ -11,6 +11,7 @@ import (
 
 	"github.com/0n1xx/soundcheck/internal/core"
 	"github.com/0n1xx/soundcheck/internal/store"
+	"github.com/0n1xx/soundcheck/internal/ticketmaster"
 )
 
 // The HTML and CSS are built into the program itself, so the binary
@@ -22,24 +23,25 @@ var templateFiles embed.FS
 //go:embed static
 var staticFiles embed.FS
 
-// Server is the website: parsed pages, the database and the router.
+// Server is the website: parsed pages, the database, Ticketmaster and the router.
 type Server struct {
 	mux       *http.ServeMux
 	templates *template.Template
 	db        *store.Store
+	tm        *ticketmaster.Client // checks that artists exist
 }
 
 // pageData is everything a page template can show.
 type pageData struct {
-	User    *core.User // the logged-in user, or nil for visitors
-	Artists []string   // artists the logged-in user follows
-	Email   string     // keeps what was typed in a form after an error
-	Error   string     // message shown above a form
-	Page    string     // which page is shown, e.g. "artists.html"; set by render
+	User    *core.User    // the logged-in user, or nil for visitors
+	Artists []core.Artist // artists the logged-in user follows
+	Email   string        // keeps what was typed in a form after an error
+	Error   string        // message shown above a form
+	Page    string        // which page is shown, e.g. "artists.html"; set by render
 }
 
 // NewServer loads the pages and registers every route.
-func NewServer(db *store.Store) (*Server, error) {
+func NewServer(db *store.Store, tm *ticketmaster.Client) (*Server, error) {
 	templates, err := template.ParseFS(templateFiles, "templates/*.html")
 	if err != nil {
 		return nil, fmt.Errorf("parse templates: %w", err)
@@ -54,6 +56,7 @@ func NewServer(db *store.Store) (*Server, error) {
 		mux:       http.NewServeMux(),
 		templates: templates,
 		db:        db,
+		tm:        tm,
 	}
 
 	// CSS and other files are sent as they are.

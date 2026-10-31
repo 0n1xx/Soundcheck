@@ -35,9 +35,9 @@
                 {{range .Artists}}
                 <li class="folder">
                     <svg aria-hidden="true"><use href="#i-folder-big"/></svg>
-                    <span class="folder__name">{{.}}</span>
+                    <span class="folder__name">{{.Name}}</span>
                     <form method="post" action="/artists/remove">
-                        <input type="hidden" name="artist" value="{{.}}">
+                        <input type="hidden" name="artist" value="{{.Name}}">
                         <button class="link-button" type="submit">Remove</button>
                     </form>
                 </li>

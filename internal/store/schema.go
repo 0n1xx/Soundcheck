@@ -33,6 +33,11 @@ CREATE TABLE IF NOT EXISTS soundcheck.user_artists (
     created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
     PRIMARY KEY (user_id, name)
 );
+
+-- Ticketmaster's ID for the artist, used by the worker to find their
+-- concerts precisely. Added after the table was created, hence ALTER.
+ALTER TABLE soundcheck.user_artists
+    ADD COLUMN IF NOT EXISTS tm_id TEXT NOT NULL DEFAULT '';
 `
 
 // Migrate creates the schema and tables if they don't exist yet.

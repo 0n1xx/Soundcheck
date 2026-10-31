@@ -3,15 +3,16 @@ package store
 import (
 	"context"
 	"fmt"
+
+	"github.com/0n1xx/soundcheck/internal/core"
 )
 
 // ListArtists returns the artists a user follows, oldest first.
 // It's used to fill the Artists page and the counters in the sidebar.
-func (s *Store) ListArtists(ctx context.Context, userID int64) ([]string, error) {
+func (s *Store) ListArtists(ctx context.Context, userID int64) ([]core.Artist, error) {
 	// Query is for SELECTs that can return many rows.
-	// $1 is replaced by userID safely, so no SQL injection is possible.
 	rows, err := s.pool.Query(ctx,
-		`SELECT name FROM user_artists
+		`SELECT name, tm_id FROM user_artists
 		 WHERE user_id = $1
 		 ORDER BY created_at`,
 		userID,
@@ -19,19 +20,18 @@ func (s *Store) ListArtists(ctx context.Context, userID int64) ([]string, error)
 	if err != nil {
 		return nil, fmt.Errorf("list artists: %w", err)
 	}
-	// The rows hold a database connection; give it back to the pool
-	// when this function returns, however it returns.
+	// The rows hold a database connection; give it back to the pool when done.
 	defer rows.Close()
 
-	var artists []string
+	var artists []core.Artist
 
 	// Read the result one row at a time, like while (reader.Read()) in C#.
 	for rows.Next() {
-		var name string
-		if err := rows.Scan(&name); err != nil {
+		var a core.Artist
+		if err := rows.Scan(&a.Name, &a.TicketmasterID); err != nil {
 			return nil, fmt.Errorf("scan artist: %w", err)
 		}
-		artists = append(artists, name)
+		artists = append(artists, a)
 	}
 
 	// The loop also stops if the connection breaks halfway,
@@ -44,15 +44,14 @@ func (s *Store) ListArtists(ctx context.Context, userID int64) ([]string, error)
 
 // AddArtist makes a user follow an artist.
 // Adding the same artist twice does nothing instead of failing.
-func (s *Store) AddArtist(ctx context.Context, userID int64, name string) error {
-	// Exec is for statements that don't return rows: INSERT, UPDATE, DELETE.
+func (s *Store) AddArtist(ctx context.Context, userID int64, a core.Artist) error {
 	// ON CONFLICT relies on PRIMARY KEY (user_id, name) from schema.go:
 	// if this pair already exists, Postgres skips the insert quietly.
 	_, err := s.pool.Exec(ctx,
-		`INSERT INTO user_artists (user_id, name)
-		 VALUES ($1, $2)
+		`INSERT INTO user_artists (user_id, name, tm_id)
+		 VALUES ($1, $2, $3)
 		 ON CONFLICT (user_id, name) DO NOTHING`,
-		userID, name,
+		userID, a.Name, a.TicketmasterID,
 	)
 	if err != nil {
 		return fmt.Errorf("add artist: %w", err)

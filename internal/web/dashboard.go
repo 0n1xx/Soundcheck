@@ -1,9 +1,15 @@
 package web
 
 import (
+	"errors"
+	"fmt"
+	"log"
 	"net/http"
 	"strings"
 	"unicode/utf8"
+
+	"github.com/0n1xx/soundcheck/internal/core"
+	"github.com/0n1xx/soundcheck/internal/ticketmaster"
 )
 
 const (
@@ -16,7 +22,8 @@ const (
 // ---- Handlers ---------------------------------------------------------------
 // All of them run behind requireUser, so the user is always logged in here.
 
-// handleAddArtist adds an artist from the form at the top of the Artists page.
+// handleAddArtist adds an artist from the form at the top of the Artists page,
+// after checking with Ticketmaster that the artist really exists.
 func (s *Server) handleAddArtist(w http.ResponseWriter, r *http.Request) {
 	user := userFromContext(r)
 	name := cleanName(r.FormValue("artist"))
@@ -31,7 +38,7 @@ func (s *Server) handleAddArtist(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Check the limit before adding.
+	// Check the limit before calling Ticketmaster.
 	artists, err := s.db.ListArtists(r.Context(), user.ID)
 	if err != nil {
 		s.serverError(w, err)
@@ -43,7 +50,24 @@ func (s *Server) handleAddArtist(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := s.db.AddArtist(r.Context(), user.ID, name); err != nil {
+	// Ask Ticketmaster whether this artist exists and how they spell their name.
+	found, err := s.tm.FindArtist(name)
+	if errors.Is(err, ticketmaster.ErrArtistNotFound) {
+		s.renderDashboard(w, r, http.StatusBadRequest, "artists.html",
+			fmt.Sprintf("We couldn't find %q on Ticketmaster. Check the spelling.", name))
+		return
+	}
+	if err != nil {
+		// Ticketmaster is down or slow: not the user's fault, so say so.
+		log.Printf("find artist %q: %v", name, err)
+		s.renderDashboard(w, r, http.StatusBadGateway, "artists.html",
+			"Ticketmaster isn't responding right now. Try again in a minute.")
+		return
+	}
+
+	// Save the name as Ticketmaster spells it, plus its ID for the worker.
+	artist := core.Artist{Name: found.Name, TicketmasterID: found.ID}
+	if err := s.db.AddArtist(r.Context(), user.ID, artist); err != nil {
 		s.serverError(w, err)
 		return
 	}

@@ -15,6 +15,7 @@ import (
 	"github.com/joho/godotenv"
 
 	"github.com/0n1xx/soundcheck/internal/store"
+	"github.com/0n1xx/soundcheck/internal/ticketmaster"
 	"github.com/0n1xx/soundcheck/internal/web"
 )
 
@@ -33,6 +34,12 @@ func main() {
 		log.Fatal("DATABASE_URL is not set")
 	}
 
+	// Used to check that artists exist (and later, by the worker, to find shows).
+	tmKey := os.Getenv("TICKETMASTER_API_KEY")
+	if tmKey == "" {
+		log.Fatal("TICKETMASTER_API_KEY is not set")
+	}
+
 	// Give the database 10 seconds to answer on startup, then give up.
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
@@ -48,7 +55,7 @@ func main() {
 	}
 	log.Println("Database is ready")
 
-	srv, err := web.NewServer(db)
+	srv, err := web.NewServer(db, ticketmaster.New(tmKey))
 	if err != nil {
 		log.Fatal(err)
 	}
