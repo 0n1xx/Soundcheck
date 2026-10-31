@@ -31,9 +31,11 @@ type Server struct {
 
 // pageData is everything a page template can show.
 type pageData struct {
-	User  *core.User // the logged-in user, or nil for visitors
-	Email string     // keeps what was typed in a form after an error
-	Error string     // message shown above a form
+	User    *core.User // the logged-in user, or nil for visitors
+	Artists []string   // artists the logged-in user follows
+	Email   string     // keeps what was typed in a form after an error
+	Error   string     // message shown above a form
+	Page    string     // which page is shown, e.g. "artists.html"; set by render
 }
 
 // NewServer loads the pages and registers every route.
@@ -62,7 +64,7 @@ func NewServer(db *store.Store) (*Server, error) {
 	s.mux.HandleFunc("GET /login", s.guestOnly(s.page("login.html")))
 	s.mux.HandleFunc("GET /privacy", s.page("privacy.html"))
 
-	// Forms.
+	// Sign up, log in and log out (auth.go).
 	s.mux.HandleFunc("POST /signup", s.handleSignup)
 	s.mux.HandleFunc("POST /login", s.handleLogin)
 	s.mux.HandleFunc("POST /logout", s.handleLogout)
@@ -71,6 +73,11 @@ func NewServer(db *store.Store) (*Server, error) {
 	s.mux.HandleFunc("GET /shows", s.requireUser(s.page("shows.html")))
 	s.mux.HandleFunc("GET /artists", s.requireUser(s.page("artists.html")))
 	s.mux.HandleFunc("GET /settings", s.requireUser(s.page("settings.html")))
+
+	// Dashboard forms (dashboard.go): also only for logged-in users.
+	s.mux.HandleFunc("POST /artists/add", s.requireUser(s.handleAddArtist))
+	s.mux.HandleFunc("POST /artists/remove", s.requireUser(s.handleRemoveArtist))
+	s.mux.HandleFunc("POST /settings/city", s.requireUser(s.handleSetCity))
 
 	// Anything else gets the "page not found" page.
 	s.mux.HandleFunc("/", s.notFound)
@@ -85,9 +92,21 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 }
 
 // page returns a handler that shows one HTML page.
+// Dashboard pages also get the user's artists from the database.
 func (s *Server) page(name string) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		s.render(w, http.StatusOK, name, pageData{User: userFromContext(r)})
+		// Visitors: nobody is logged in, so there's nothing to load.
+		if userFromContext(r) == nil {
+			s.render(w, http.StatusOK, name, pageData{})
+			return
+		}
+
+		data, err := s.dashboardData(r)
+		if err != nil {
+			s.serverError(w, err)
+			return
+		}
+		s.render(w, http.StatusOK, name, data)
 	}
 }
 
@@ -98,6 +117,9 @@ func (s *Server) notFound(w http.ResponseWriter, r *http.Request) {
 
 // render writes a page to the browser, filling it with data.
 func (s *Server) render(w http.ResponseWriter, status int, name string, data pageData) {
+	// Lets shared templates (like the sidebar) know which page they're on.
+	data.Page = name
+
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	w.WriteHeader(status)
 
