@@ -50,9 +50,11 @@
                     <div class="divider">or</div>
 
                     <form method="post" action="/login">
+
+                        {{if .Error}}<p class="form-error" role="alert">{{.Error}}</p>{{end}}
                         <div class="field">
                             <label for="email">Email</label>
-                            <input id="email" name="email" type="email" autocomplete="email" required>
+                            <input id="email" name="email" type="email" value="{{.Email}}" autocomplete="email" required>
                         </div>
 
                         <div class="field">

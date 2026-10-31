@@ -317,6 +317,17 @@ textarea:focus-visible {
     width: 12rem;
 }
 
+/* Error message shown above a form after a failed submit */
+.form-error {
+    margin: 0 0 var(--space-4);
+    padding: var(--space-2) var(--space-3);
+    color: var(--color-danger);
+    font-size: var(--text-sm);
+    background: #fdecea;
+    border: 1px solid #f3c2bc;
+    border-radius: var(--radius-sm);
+}
+
 /* Small helper text under (or above, with --top) a form */
 .hint {
     margin: var(--space-3) 0 0;

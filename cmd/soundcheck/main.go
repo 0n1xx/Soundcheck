@@ -48,7 +48,7 @@ func main() {
 	}
 	log.Println("Database is ready")
 
-	srv, err := web.NewServer()
+	srv, err := web.NewServer(db)
 	if err != nil {
 		log.Fatal(err)
 	}
