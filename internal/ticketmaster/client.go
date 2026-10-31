@@ -81,6 +81,11 @@ func toEvent(e event) core.Event {
 		ev.StartsAt = t
 	}
 
+	ev.Status = e.Dates.Status.Code
+	if t, err := time.Parse(time.RFC3339, e.Sales.Public.StartDateTime); err == nil {
+		ev.OnSaleAt = t
+	}
+
 	return ev
 }
 

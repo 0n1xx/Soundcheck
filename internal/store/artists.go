@@ -85,3 +85,29 @@ func (s *Store) SetCity(ctx context.Context, userID int64, city string) error {
 	}
 	return nil
 }
+
+// ArtistIDsToCheck returns every Ticketmaster artist ID that at least one
+// user follows. Each artist appears once, even if many users follow them,
+// so the worker asks Ticketmaster about each artist only once per run.
+func (s *Store) ArtistIDsToCheck(ctx context.Context) ([]string, error) {
+	rows, err := s.pool.Query(ctx,
+		`SELECT DISTINCT tm_id FROM user_artists WHERE tm_id <> ''`,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("list artist ids: %w", err)
+	}
+	defer rows.Close()
+
+	var ids []string
+	for rows.Next() {
+		var id string
+		if err := rows.Scan(&id); err != nil {
+			return nil, fmt.Errorf("scan artist id: %w", err)
+		}
+		ids = append(ids, id)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("read artist ids: %w", err)
+	}
+	return ids, nil
+}

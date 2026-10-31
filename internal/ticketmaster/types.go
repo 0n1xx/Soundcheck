@@ -21,7 +21,16 @@ type event struct {
 			LocalTime string `json:"localTime"` // e.g. "19:30:00"
 			DateTime  string `json:"dateTime"`  // UTC, e.g. "2026-12-30T00:30:00Z"
 		} `json:"start"`
+		Status struct {
+			Code string `json:"code"` // "onsale", "offsale", "cancelled", "rescheduled"...
+		} `json:"status"`
 	} `json:"dates"`
+
+	Sales struct {
+		Public struct {
+			StartDateTime string `json:"startDateTime"` // UTC, when public sales start
+		} `json:"public"`
+	} `json:"sales"`
 
 	Embedded struct {
 		Venues []struct {

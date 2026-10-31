@@ -1,4 +1,4 @@
-// Command soundcheck runs the Soundcheck website.
+// Command soundcheck runs the Soundcheck website and the background worker.
 //
 // Usage:
 //
@@ -7,9 +7,12 @@ package main
 
 import (
 	"context"
+	"errors"
 	"log"
 	"net/http"
 	"os"
+	"os/signal"
+	"syscall"
 	"time"
 
 	"github.com/joho/godotenv"
@@ -17,6 +20,7 @@ import (
 	"github.com/0n1xx/soundcheck/internal/store"
 	"github.com/0n1xx/soundcheck/internal/ticketmaster"
 	"github.com/0n1xx/soundcheck/internal/web"
+	"github.com/0n1xx/soundcheck/internal/worker"
 )
 
 func main() {
@@ -34,34 +38,65 @@ func main() {
 		log.Fatal("DATABASE_URL is not set")
 	}
 
-	// Used to check that artists exist (and later, by the worker, to find shows).
 	tmKey := os.Getenv("TICKETMASTER_API_KEY")
 	if tmKey == "" {
 		log.Fatal("TICKETMASTER_API_KEY is not set")
 	}
 
+	// ctx is the "go home" call: it is cancelled when Railway (or Ctrl+C)
+	// asks the program to stop. Everything long-running listens to it.
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	defer stop()
+
 	// Give the database 10 seconds to answer on startup, then give up.
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	startCtx, cancel := context.WithTimeout(ctx, 10*time.Second)
 	defer cancel()
 
-	db, err := store.New(ctx, databaseURL)
+	db, err := store.New(startCtx, databaseURL)
 	if err != nil {
 		log.Fatal(err)
 	}
 	defer db.Close()
 
-	if err := db.Migrate(ctx); err != nil {
+	if err := db.Migrate(startCtx); err != nil {
 		log.Fatal(err)
 	}
 	log.Println("Database is ready")
 
-	srv, err := web.NewServer(db, ticketmaster.New(tmKey))
+	// One Ticketmaster client, shared by the website and the worker.
+	tm := ticketmaster.New(tmKey)
+
+	// The worker runs in its own goroutine, next to the website.
+	go worker.New(db, tm).Run(ctx)
+
+	srv, err := web.NewServer(db, tm)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	log.Printf("Soundcheck is running on http://localhost:%s", port)
+	httpServer := &http.Server{
+		Addr:    ":" + port,
+		Handler: srv,
+	}
 
-	// ListenAndServe blocks forever: it waits for requests and hands each one to srv.
-	log.Fatal(http.ListenAndServe(":"+port, srv))
+	// The website also runs in its own goroutine, so main can wait for "stop".
+	go func() {
+		log.Printf("Soundcheck is running on http://localhost:%s", port)
+		if err := httpServer.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
+			log.Fatal(err)
+		}
+	}()
+
+	// Wait here until Railway asks us to stop.
+	<-ctx.Done()
+	log.Println("Shutting down...")
+
+	// Let requests that are in progress finish, but don't wait more than 10 seconds.
+	shutdownCtx, cancelShutdown := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancelShutdown()
+
+	if err := httpServer.Shutdown(shutdownCtx); err != nil {
+		log.Printf("shutdown: %v", err)
+	}
+	log.Println("Bye")
 }
