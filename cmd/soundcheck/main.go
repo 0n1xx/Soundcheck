@@ -24,6 +24,9 @@ import (
 )
 
 func main() {
+	// Railway colours stderr red; normal logs go to stdout.
+	log.SetOutput(os.Stdout)
+
 	// Load .env if it exists; on Railway variables come from the service settings.
 	_ = godotenv.Load()
 
@@ -66,10 +69,12 @@ func main() {
 	// One Ticketmaster client, shared by the website and the worker.
 	tm := ticketmaster.New(tmKey)
 
-	// The worker runs in its own goroutine, next to the website.
-	go worker.New(db, tm).Run(ctx)
+	// One worker: it runs in the background, and the website can ask it
+	// to check a newly added artist right away.
+	wk := worker.New(db, tm)
+	go wk.Run(ctx)
 
-	srv, err := web.NewServer(db, tm)
+	srv, err := web.NewServer(db, tm, wk)
 	if err != nil {
 		log.Fatal(err)
 	}

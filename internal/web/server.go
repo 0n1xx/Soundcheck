@@ -12,6 +12,7 @@ import (
 	"github.com/0n1xx/soundcheck/internal/core"
 	"github.com/0n1xx/soundcheck/internal/store"
 	"github.com/0n1xx/soundcheck/internal/ticketmaster"
+	"github.com/0n1xx/soundcheck/internal/worker"
 )
 
 // The HTML and CSS are built into the program itself, so the binary
@@ -29,6 +30,7 @@ type Server struct {
 	templates *template.Template
 	db        *store.Store
 	tm        *ticketmaster.Client // checks that artists exist
+	worker    *worker.Worker       // checks a new artist's shows right away
 }
 
 // pageData is everything a page template can show.
@@ -41,7 +43,7 @@ type pageData struct {
 }
 
 // NewServer loads the pages and registers every route.
-func NewServer(db *store.Store, tm *ticketmaster.Client) (*Server, error) {
+func NewServer(db *store.Store, tm *ticketmaster.Client, wk *worker.Worker) (*Server, error) {
 	templates, err := template.ParseFS(templateFiles, "templates/*.html")
 	if err != nil {
 		return nil, fmt.Errorf("parse templates: %w", err)
@@ -57,6 +59,7 @@ func NewServer(db *store.Store, tm *ticketmaster.Client) (*Server, error) {
 		templates: templates,
 		db:        db,
 		tm:        tm,
+		worker:    wk,
 	}
 
 	// CSS and other files are sent as they are.

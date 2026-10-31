@@ -127,3 +127,10 @@ func (w *Worker) checkArtist(ctx context.Context, artistID string) error {
 	}
 	return nil
 }
+
+// CheckArtist checks one artist right now. The website calls it when
+// a user adds a new artist, so their shows appear without waiting for
+// the next round. It shares the rate limiter with the background rounds.
+func (w *Worker) CheckArtist(ctx context.Context, artistID string) error {
+	return w.checkArtist(ctx, artistID)
+}

@@ -71,6 +71,14 @@ func (s *Server) handleAddArtist(w http.ResponseWriter, r *http.Request) {
 		s.serverError(w, err)
 		return
 	}
+
+	// Look for this artist's shows right away instead of waiting for the
+	// worker's next round. If Ticketmaster is slow or down, the artist is
+	// still saved and the worker will catch up later.
+	if err := s.worker.CheckArtist(r.Context(), found.ID); err != nil {
+		log.Printf("check new artist %q: %v", found.Name, err)
+	}
+
 	http.Redirect(w, r, "/artists", http.StatusSeeOther)
 }
 
