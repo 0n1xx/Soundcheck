@@ -228,6 +228,33 @@ svg {
     border-bottom: 1px solid var(--color-line);
 }
 
+/* ☰ button that opens the sidebar on phones; hidden on bigger screens */
+.menu-button {
+    display: none;
+    place-items: center;
+    width: 2.25rem;
+    height: 2.25rem;
+    margin-left: calc(-1 * var(--space-2));
+    padding: 0;
+    color: #4a4a4a;
+    background: none;
+    border: 0;
+    border-radius: var(--radius-md);
+    cursor: pointer;
+}
+
+.menu-button:hover { background: rgb(0 0 0 / 0.05); }
+
+.menu-button:focus-visible {
+    outline: none;
+    box-shadow: var(--focus-ring);
+}
+
+.menu-button svg {
+    width: 1.4rem;
+    height: 1.4rem;
+}
+
 /* Back and forward arrows, decorative only */
 .toolbar__arrows {
     display: flex;
@@ -881,7 +908,7 @@ textarea:focus-visible {
 /* Tablets and small laptops: narrower sidebar, shows become cards */
 @media (max-width: 68.75em) {
     :root {
-        --sidebar-width: 13.5rem;
+        --sidebar-width: 15.5rem; /* still fits "Upcoming shows" and its count */
     }
 
     .list thead {
@@ -980,6 +1007,82 @@ textarea:focus-visible {
 
     .document {
         padding: var(--space-5);
+    }
+}
+
+/* Phones with JavaScript: the sidebar becomes a drawer behind the ☰ button.
+   (nav.js sets .has-nav; without it the scrollable bar above is used.) */
+@media (max-width: 47.5em) {
+    .has-nav .menu-button {
+        display: grid;
+    }
+
+    /* The arrows are decoration; on a phone the ☰ button takes their place */
+    .has-nav .toolbar__arrows {
+        display: none;
+    }
+
+    .has-nav .sidebar {
+        position: fixed;
+        inset: 0 auto 0 0;
+        z-index: 20;
+        display: block;
+        width: min(17rem, 85vw);
+        overflow-y: auto;
+        padding: var(--space-5) var(--space-4);
+        border-right: 1px solid var(--color-line);
+        border-bottom: 0;
+        box-shadow: 0 0 2rem rgb(0 0 0 / 0.2);
+        transform: translateX(-105%);
+        transition: transform 0.25s ease;
+    }
+
+    .has-nav.nav-open .sidebar {
+        transform: none;
+    }
+
+    /* Inside the drawer everything looks like the desktop sidebar again */
+    .has-nav .sidebar nav {
+        display: block;
+    }
+
+    .has-nav .sidebar .lights {
+        margin: 0 0 var(--space-6) var(--space-2);
+    }
+
+    .has-nav .sidebar__title {
+        display: block;
+    }
+
+    .has-nav .sidebar__item {
+        width: 100%;
+        padding: 0.6em 0.6em;
+    }
+
+    /* Dark layer behind the open drawer (created by nav.js) */
+    .nav-backdrop {
+        position: fixed;
+        inset: 0;
+        z-index: 10;
+        background: rgb(0 0 0 / 0.35);
+        opacity: 0;
+        visibility: hidden;
+        transition: opacity 0.25s ease, visibility 0.25s;
+    }
+
+    .nav-open .nav-backdrop {
+        opacity: 1;
+        visibility: visible;
+    }
+
+    /* The page behind the menu doesn't scroll while it's open */
+    .nav-open body {
+        overflow: hidden;
+    }
+
+    /* The path bar is decoration and wraps badly on a phone */
+    .pathbar {
+        display: none;
     }
 }
 

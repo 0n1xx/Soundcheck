@@ -30,8 +30,6 @@ func showStatus(e core.Event) ticketStatus {
 	switch e.Status {
 	case "cancelled":
 		return ticketStatus{Label: "Cancelled", Class: "status--off"}
-	case "offsale":
-		return ticketStatus{Label: "Off sale", Class: "status--off"}
 	case "postponed":
 		return ticketStatus{Label: "Postponed", Class: "status--soon"}
 	case "rescheduled":
@@ -39,9 +37,14 @@ func showStatus(e core.Event) ticketStatus {
 	}
 
 	// Sales haven't started yet: say when, in the venue's local time.
+	// This comes before "offsale", because Ticketmaster also uses
+	// "offsale" for shows whose tickets aren't on sale *yet*.
 	if e.OnSaleAt.After(time.Now()) {
 		t := e.VenueTime(e.OnSaleAt)
 		return ticketStatus{Label: "On sale " + t.Format("Mon, Jan 2 · 15:04"), Class: "status--soon"}
+	}
+	if e.Status == "offsale" {
+		return ticketStatus{Label: "Off sale", Class: "status--off"}
 	}
 	return ticketStatus{Label: "On sale now"}
 }
