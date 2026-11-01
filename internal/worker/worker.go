@@ -10,6 +10,8 @@ import (
 	"golang.org/x/sync/errgroup"
 	"golang.org/x/time/rate"
 
+	"github.com/0n1xx/soundcheck/internal/core"
+	"github.com/0n1xx/soundcheck/internal/notify"
 	"github.com/0n1xx/soundcheck/internal/store"
 	"github.com/0n1xx/soundcheck/internal/ticketmaster"
 )
@@ -27,16 +29,19 @@ const (
 
 // Worker finds concerts for every followed artist and saves them.
 type Worker struct {
-	db      *store.Store
-	tm      *ticketmaster.Client
-	limiter *rate.Limiter
+	db        *store.Store
+	tm        *ticketmaster.Client
+	limiter   *rate.Limiter
+	notifiers []notify.Notifier // every channel alerts go out through
 }
 
-// New creates a worker. Call Run to start it.
-func New(db *store.Store, tm *ticketmaster.Client) *Worker {
+// New creates a worker that sends alerts through the given channels
+// (Telegram today, email later). Call Run to start it.
+func New(db *store.Store, tm *ticketmaster.Client, notifiers ...notify.Notifier) *Worker {
 	return &Worker{
-		db: db,
-		tm: tm,
+		db:        db,
+		tm:        tm,
+		notifiers: notifiers,
 		// At most 4 requests per second, one at a time (burst of 1).
 		limiter: rate.NewLimiter(rate.Limit(requestsPerSecond), 1),
 	}
@@ -115,10 +120,11 @@ func (w *Worker) checkArtist(ctx context.Context, artistID string) error {
 			return err
 		}
 
-		// For now just log what happened; step 5 turns these into emails.
+		// Cancellations and reschedules become alerts in step 5.6.
 		switch change {
 		case store.EventNew:
 			log.Printf("worker: new show %q in %s", e.Name, e.City)
+			w.alertNewShow(ctx, e)
 		case store.EventStatusChanged:
 			log.Printf("worker: %q is now %s", e.Name, e.Status)
 		case store.EventRescheduled:
@@ -133,4 +139,54 @@ func (w *Worker) checkArtist(ctx context.Context, artistID string) error {
 // the next round. It shares the rate limiter with the background rounds.
 func (w *Worker) CheckArtist(ctx context.Context, artistID string) error {
 	return w.checkArtist(ctx, artistID)
+}
+
+// alertNewShow tells the artist's followers in that city about a new show.
+func (w *Worker) alertNewShow(ctx context.Context, e core.Event) {
+	users, err := w.db.NewShowFollowers(ctx, e.ID)
+	if err != nil {
+		log.Printf("worker: followers of %s: %v", e.ID, err)
+		return
+	}
+
+	text := e.Place() + "\n" + e.DateText()
+	if e.OnSaleAt.After(time.Now()) {
+		text += "\n\nTickets on sale " + e.VenueTime(e.OnSaleAt).Format("Mon, Jan 2 · 15:04")
+	}
+	msg := notify.Message{Title: "New show: " + e.Name, Text: text, URL: e.URL}
+
+	for _, u := range users {
+		w.send(ctx, u, e.ID, "new", msg)
+	}
+}
+
+// send delivers one alert to one user through every channel, at most once.
+func (w *Worker) send(ctx context.Context, u core.User, eventID, kind string, msg notify.Message) {
+	// Take the "ticket" first: if it's already taken, this alert went out before.
+	first, err := w.db.MarkAlertSent(ctx, u.ID, eventID, kind)
+	if err != nil {
+		log.Printf("worker: %v", err)
+		return
+	}
+	if !first {
+		return
+	}
+
+	to := notify.Recipient{Email: u.Email, TelegramChatID: u.TelegramChatID}
+	failed := false
+	for _, n := range w.notifiers {
+		if err := n.Notify(ctx, to, msg); err != nil {
+			log.Printf("worker: %s alert to user %d: %v", kind, u.ID, err)
+			failed = true
+		}
+	}
+
+	// Nothing reached the user: give the ticket back so a later run can retry.
+	if failed {
+		if err := w.db.UnmarkAlert(ctx, u.ID, eventID, kind); err != nil {
+			log.Printf("worker: %v", err)
+		}
+		return
+	}
+	log.Printf("worker: sent %s alert about %s to user %d", kind, eventID, u.ID)
 }

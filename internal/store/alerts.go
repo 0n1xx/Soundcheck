@@ -1,0 +1,67 @@
+package store
+
+import (
+	"context"
+	"fmt"
+
+	"github.com/0n1xx/soundcheck/internal/core"
+)
+
+// NewShowFollowers returns the users to tell about a newly found concert:
+// they follow its artist, their city is the concert's city, and they
+// followed the artist before the concert appeared. The last rule skips the
+// shows that were already announced when someone added the artist; those
+// are on the Upcoming shows page anyway.
+func (s *Store) NewShowFollowers(ctx context.Context, eventID string) ([]core.User, error) {
+	rows, err := s.pool.Query(ctx,
+		`SELECT u.id, u.email, COALESCE(u.telegram_chat_id, 0)
+		 FROM events e
+		 JOIN user_artists ua ON ua.tm_id = e.artist_id
+		 JOIN users u ON u.id = ua.user_id
+		 WHERE e.id = $1
+		   AND u.city <> '' AND lower(u.city) = lower(e.city)
+		   AND ua.created_at < e.first_seen - interval '1 minute'`,
+		eventID,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("new show followers: %w", err)
+	}
+	defer rows.Close()
+
+	var users []core.User
+	for rows.Next() {
+		var u core.User
+		if err := rows.Scan(&u.ID, &u.Email, &u.TelegramChatID); err != nil {
+			return nil, fmt.Errorf("read follower: %w", err)
+		}
+		users = append(users, u)
+	}
+	return users, rows.Err()
+}
+
+// MarkAlertSent records that a user is getting an alert about an event.
+// It returns false if that alert was already sent, so it isn't sent twice.
+// Call it before sending: it's like taking a ticket at the counter.
+func (s *Store) MarkAlertSent(ctx context.Context, userID int64, eventID, kind string) (bool, error) {
+	tag, err := s.pool.Exec(ctx,
+		`INSERT INTO sent_alerts (user_id, event_id, kind) VALUES ($1, $2, $3)
+		 ON CONFLICT DO NOTHING`,
+		userID, eventID, kind,
+	)
+	if err != nil {
+		return false, fmt.Errorf("mark alert sent: %w", err)
+	}
+	return tag.RowsAffected() == 1, nil
+}
+
+// UnmarkAlert forgets an alert that failed to send, so it can be retried.
+func (s *Store) UnmarkAlert(ctx context.Context, userID int64, eventID, kind string) error {
+	_, err := s.pool.Exec(ctx,
+		`DELETE FROM sent_alerts WHERE user_id = $1 AND event_id = $2 AND kind = $3`,
+		userID, eventID, kind,
+	)
+	if err != nil {
+		return fmt.Errorf("unmark alert: %w", err)
+	}
+	return nil
+}

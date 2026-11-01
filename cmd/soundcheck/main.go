@@ -70,16 +70,19 @@ func main() {
 	// One Ticketmaster client, shared by the website and the worker.
 	tm := ticketmaster.New(tmKey)
 
-	// One worker: it runs in the background, and the website can ask it
-	// to check a newly added artist right away.
-	wk := worker.New(db, tm)
-	go wk.Run(ctx)
-
 	// Telegram is optional: without a token the site works, just without it.
+	// Every working channel goes into the list the worker sends alerts through.
 	var tg *notify.Telegram
+	var channels []notify.Notifier
 	if token := os.Getenv("TELEGRAM_BOT_TOKEN"); token != "" {
 		tg = notify.NewTelegram(token)
+		channels = append(channels, tg)
 	}
+
+	// One worker: it runs in the background, and the website can ask it
+	// to check a newly added artist right away.
+	wk := worker.New(db, tm, channels...)
+	go wk.Run(ctx)
 
 	srv, err := web.NewServer(db, tm, wk, tg, os.Getenv("TELEGRAM_BOT_USERNAME"))
 	if err != nil {

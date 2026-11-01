@@ -75,6 +75,16 @@ CREATE TABLE IF NOT EXISTS soundcheck.telegram_links (
     user_id    BIGINT NOT NULL REFERENCES soundcheck.users(id) ON DELETE CASCADE,
     expires_at TIMESTAMPTZ NOT NULL
 );
+
+-- Alerts already sent, so nobody gets the same one twice.
+-- kind is "new", "onsale_24h", "onsale_15m", "cancelled", "rescheduled"...
+CREATE TABLE IF NOT EXISTS soundcheck.sent_alerts (
+    user_id  BIGINT NOT NULL REFERENCES soundcheck.users(id) ON DELETE CASCADE,
+    event_id TEXT NOT NULL,
+    kind     TEXT NOT NULL,
+    sent_at  TIMESTAMPTZ NOT NULL DEFAULT now(),
+    PRIMARY KEY (user_id, event_id, kind)
+);
 `
 
 // Migrate creates the schema and tables if they don't exist yet.
