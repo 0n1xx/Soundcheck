@@ -5,6 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Privacy · Soundcheck</title>
     <link rel="stylesheet" href="/static/style.css">
+    <link rel="icon" href="/static/favicon.svg" type="image/svg+xml">
+    <link rel="icon" href="/static/favicon-32.png" sizes="32x32" type="image/png">
+    <link rel="apple-touch-icon" href="/static/apple-touch-icon.png">
 </head>
 <body>
 <!-- Icon set: drawn once here, reused below with <use href="#..."> -->
@@ -39,35 +42,38 @@
             <!-- Shown like a text document open in a window -->
             <article class="document">
                 <h2>Privacy policy</h2>
-                <p class="document__meta">Last updated <time datetime="2026-10-25">October 25, 2026</time></p>
+                <p class="document__meta">Last updated <time datetime="2026-11-01">November 1, 2026</time></p>
 
-                <p>Soundcheck is a small personal project that emails you when artists you follow announce shows near you. This page explains what we store and why.</p>
+                <p>Soundcheck is a small personal project that tells you by email or Telegram when artists you follow announce shows near you. This page explains what we store and why.</p>
 
                 <h3>What we store</h3>
                 <ul>
                     <li><strong>Your email address</strong>, to sign you in and send you concert alerts.</li>
-                    <li><strong>Your password</strong>, stored only as a secure hash. We can never see the password itself.</li>
+                    <li><strong>Your password</strong>, stored only as a secure hash. We can never see the password itself. If you only sign in with Google, there is no password at all.</li>
+                    <li><strong>Your Google account ID</strong>, if you sign in with Google, to recognise you next time. We only ask Google for your email address, nothing else from your account.</li>
                     <li><strong>Your city and the artists you follow</strong>, to find shows for you.</li>
-                    <li><strong>Your name and email from Google</strong>, if you sign in with Google. We don't get access to anything else in your Google account.</li>
+                    <li><strong>Your Telegram chat ID</strong>, if you connect Telegram, so our bot can message you.</li>
+                    <li><strong>Which alerts you want and which ones we have sent</strong>, so you never get the same alert twice.</li>
                 </ul>
 
                 <h3>Cookies</h3>
-                <p>We use one cookie to keep you logged in. No ads, no tracking, no analytics.</p>
+                <p>We use one cookie to keep you logged in, and a short-lived one while you sign in with Google to protect that step. No ads, no tracking, no analytics.</p>
 
                 <h3>Who else is involved</h3>
                 <ul>
-                    <li><strong>Ticketmaster</strong> provides concert data. We only send them artist names and cities, never your personal details.</li>
-                    <li><strong>Resend</strong> delivers our emails.</li>
+                    <li><strong>Ticketmaster</strong> provides concert data. We only ask them about artists, never send your personal details.</li>
+                    <li><strong>Resend</strong> delivers our emails, so it receives your email address and the alert.</li>
+                    <li><strong>Telegram</strong> delivers bot messages, if you connect it.</li>
+                    <li><strong>Google</strong> handles sign-in, if you choose it.</li>
                     <li><strong>Railway</strong> hosts the app and the database.</li>
-                    <li><strong>Google</strong> handles sign-in if you choose it.</li>
                 </ul>
                 <p>We never sell or share your data with anyone else.</p>
 
-                <h3>Deleting your data</h3>
-                <p>You can delete your account anytime in Settings. That removes your email, city and artist list from our database right away.</p>
+                <h3>Your choices</h3>
+                <p>In Settings you can choose which alerts you get, disconnect Telegram, change your email or password, and delete your account. Deleting it removes your email, city, artists, Telegram connection and alert history from our database right away.</p>
 
                 <h3>Contact</h3>
-                <p>Questions? Email <a href="mailto:privacy@example.com">privacy@example.com</a>.</p>
+                <p>Questions? Email <a href="mailto:vladsahar27@gmail.com">vladsahar27@gmail.com</a>.</p>
             </article>
         </section>
 
