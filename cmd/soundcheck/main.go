@@ -123,6 +123,13 @@ func main() {
 	httpServer := &http.Server{
 		Addr:    ":" + port,
 		Handler: srv,
+		// Without these, a client that opens a connection and sends nothing
+		// (or very slowly) could hold it open forever. Enough such clients
+		// and the server runs out of connections ("Slowloris" attack).
+		ReadHeaderTimeout: 10 * time.Second,
+		ReadTimeout:       30 * time.Second,
+		WriteTimeout:      60 * time.Second, // adding an artist waits for Ticketmaster
+		IdleTimeout:       2 * time.Minute,
 	}
 
 	// The website also runs in its own goroutine, so main can wait for "stop".

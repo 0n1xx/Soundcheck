@@ -1,8 +1,7 @@
 package ticketmaster
 
 import (
-	"encoding/json"
-	"fmt"
+	"context"
 	"net/http"
 	"net/url"
 	"time"
@@ -34,23 +33,12 @@ func (c *Client) Search(artist, city string) ([]core.Event, error) {
 	params.Set("keyword", artist)
 	params.Set("city", city)
 	params.Set("classificationName", "music")
-	params.Set("apikey", c.apiKey)
 
-	resp, err := c.httpClient.Get(baseURL + "?" + params.Encode())
-	if err != nil {
-		return nil, fmt.Errorf("request ticketmaster: %w", err)
-	}
-	// Always close the body, otherwise the connection leaks.
-	defer resp.Body.Close()
-
-	// A 4xx/5xx response is not a Go error, so check the status explicitly.
-	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("ticketmaster returned status %d", resp.StatusCode)
-	}
-
+	// core.Source has no context (it's used by the small command-line tool),
+	// so this request simply runs until it finishes or times out.
 	var data response
-	if err := json.NewDecoder(resp.Body).Decode(&data); err != nil {
-		return nil, fmt.Errorf("decode response: %w", err)
+	if err := c.getJSON(context.Background(), baseURL, params, &data); err != nil {
+		return nil, err
 	}
 
 	events := make([]core.Event, 0, len(data.Embedded.Events))
@@ -75,10 +63,7 @@ func toEvent(e event) core.Event {
 
 	// The venue's time zone, used to show dates as local time.
 	ev.Timezone = e.Dates.Timezone
-	loc := time.UTC
-	if l, err := time.LoadLocation(ev.Timezone); err == nil {
-		loc = l
-	}
+	loc := core.Location(ev.Timezone)
 
 	// Prefer the exact UTC start time; fall back to the date alone
 	// (midnight at the venue) for events whose time isn't announced yet.

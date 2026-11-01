@@ -133,6 +133,17 @@ func NewServer(cfg Config) (*Server, error) {
 // ServeHTTP makes Server usable by http.ListenAndServe:
 // every request is handed to the router.
 func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	// A few standard safety headers on every response.
+	h := w.Header()
+	// Browsers must use the Content-Type we send, not guess one.
+	h.Set("X-Content-Type-Options", "nosniff")
+	// Other sites can't show our pages inside a frame (clickjacking).
+	h.Set("X-Frame-Options", "DENY")
+	// Links to other sites don't reveal the full address of the page.
+	h.Set("Referrer-Policy", "strict-origin-when-cross-origin")
+	// Browsers remember to always use HTTPS for this site for a year.
+	h.Set("Strict-Transport-Security", "max-age=31536000")
+
 	s.mux.ServeHTTP(w, r)
 }
 

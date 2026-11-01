@@ -51,7 +51,7 @@ func (s *Server) handleAddArtist(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Ask Ticketmaster whether this artist exists and how they spell their name.
-	found, err := s.tm.FindArtist(name)
+	found, err := s.tm.FindArtist(r.Context(), name)
 	if errors.Is(err, ticketmaster.ErrArtistNotFound) {
 		s.renderDashboard(w, r, http.StatusBadRequest, "artists.html",
 			fmt.Sprintf("We couldn't find %q on Ticketmaster. Check the spelling.", name))

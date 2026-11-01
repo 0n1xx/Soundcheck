@@ -1,10 +1,8 @@
 package ticketmaster
 
 import (
-	"encoding/json"
+	"context"
 	"errors"
-	"fmt"
-	"net/http"
 	"net/url"
 	"strings"
 	"unicode"
@@ -34,26 +32,15 @@ type attractionsResponse struct {
 // FindArtist looks up a musician by name. It only accepts a result whose
 // name matches what was typed (ignoring case, spaces and punctuation),
 // so typos and made-up names are rejected instead of matching someone else.
-func (c *Client) FindArtist(name string) (Artist, error) {
+func (c *Client) FindArtist(ctx context.Context, name string) (Artist, error) {
 	params := url.Values{}
 	params.Set("keyword", name)
 	params.Set("classificationName", "music")
 	params.Set("size", "20")
-	params.Set("apikey", c.apiKey)
-
-	resp, err := c.httpClient.Get(attractionsURL + "?" + params.Encode())
-	if err != nil {
-		return Artist{}, fmt.Errorf("request ticketmaster: %w", err)
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		return Artist{}, fmt.Errorf("ticketmaster returned status %d", resp.StatusCode)
-	}
 
 	var data attractionsResponse
-	if err := json.NewDecoder(resp.Body).Decode(&data); err != nil {
-		return Artist{}, fmt.Errorf("decode attractions: %w", err)
+	if err := c.getJSON(ctx, attractionsURL, params, &data); err != nil {
+		return Artist{}, err
 	}
 
 	// Ticketmaster returns everything that loosely matches the keyword,

@@ -103,6 +103,11 @@ func (w *Worker) checkAll(ctx context.Context) {
 
 	g.Wait() // wait until every artist is done
 	log.Printf("worker: checked %d artists in %s", len(ids), time.Since(start).Round(time.Second))
+
+	// Housekeeping after each round: old sessions, links and concerts.
+	if err := w.db.Cleanup(ctx); err != nil {
+		log.Printf("worker: %v", err)
+	}
 }
 
 // checkArtist asks Ticketmaster for one artist's concerts and saves them.

@@ -21,11 +21,7 @@ type Event struct {
 // VenueTime converts t to the venue's local time.
 // If the time zone is unknown, UTC is used.
 func (e Event) VenueTime(t time.Time) time.Time {
-	loc, err := time.LoadLocation(e.Timezone)
-	if err != nil {
-		return t.UTC()
-	}
-	return t.In(loc)
+	return t.In(Location(e.Timezone))
 }
 
 // DateText is the start in the venue's local time, e.g. "Thu, Feb 11 · 20:00",
