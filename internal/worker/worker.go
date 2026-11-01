@@ -127,15 +127,17 @@ func (w *Worker) checkArtist(ctx context.Context, artistID string) error {
 			return err
 		}
 
-		// Cancellations and reschedules become alerts in step 5.6.
+		// Tell followers about anything important that happened.
 		switch change {
 		case store.EventNew:
 			log.Printf("worker: new show %q in %s", e.Name, e.City)
 			w.alertNewShow(ctx, e)
 		case store.EventStatusChanged:
 			log.Printf("worker: %q is now %s", e.Name, e.Status)
+			w.alertChange(ctx, e, e.Status)
 		case store.EventRescheduled:
 			log.Printf("worker: %q moved to %s", e.Name, e.StartsAt.Format(time.RFC1123))
+			w.alertChange(ctx, e, "moved")
 		}
 	}
 	return nil
@@ -164,6 +166,44 @@ func (w *Worker) alertNewShow(ctx context.Context, e core.Event) {
 
 	for _, u := range users {
 		w.send(ctx, u, e.ID, "new", msg)
+	}
+}
+
+// alertChange tells followers in the concert's city that it was cancelled,
+// postponed or moved to a new date. Other changes, like "offsale" becoming
+// "onsale", aren't worth a message and are ignored.
+func (w *Worker) alertChange(ctx context.Context, e core.Event, change string) {
+	var title, kind, note string
+	switch change {
+	case "cancelled":
+		title, kind = "Cancelled: ", "cancelled"
+		note = "Ticketmaster will contact ticket holders about refunds."
+	case "postponed":
+		title, kind = "Postponed: ", "postponed"
+		note = "A new date hasn't been announced yet."
+	case "rescheduled", "moved":
+		title = "New date: "
+		// The new date is part of the kind: if the show moves again,
+		// that's a different alert and people hear about it again.
+		kind = "moved " + e.StartsAt.UTC().Format(time.RFC3339)
+	default:
+		return
+	}
+
+	users, err := w.db.EventFollowers(ctx, e.ID)
+	if err != nil {
+		log.Printf("worker: %v", err)
+		return
+	}
+
+	text := e.Place() + "\n" + e.DateText()
+	if note != "" {
+		text += "\n\n" + note
+	}
+	msg := notify.Message{Title: title + e.Name, Text: text, URL: e.URL}
+
+	for _, u := range users {
+		w.send(ctx, u, e.ID, kind, msg)
 	}
 }
 

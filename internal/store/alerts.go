@@ -14,18 +14,29 @@ import (
 // shows that were already announced when someone added the artist; those
 // are on the Upcoming shows page anyway.
 func (s *Store) NewShowFollowers(ctx context.Context, eventID string) ([]core.User, error) {
+	return s.followers(ctx, eventID, `AND ua.created_at < e.first_seen - interval '1 minute'`)
+}
+
+// EventFollowers returns everyone who follows the concert's artist and lives
+// in its city. Used for cancellations and new dates: everyone should know.
+func (s *Store) EventFollowers(ctx context.Context, eventID string) ([]core.User, error) {
+	return s.followers(ctx, eventID, "")
+}
+
+// followers finds the users who follow an event's artist in the event's city.
+// extra is an optional SQL condition written in this file, never user input.
+func (s *Store) followers(ctx context.Context, eventID, extra string) ([]core.User, error) {
 	rows, err := s.pool.Query(ctx,
 		`SELECT u.id, u.email, COALESCE(u.telegram_chat_id, 0)
 		 FROM events e
 		 JOIN user_artists ua ON ua.tm_id = e.artist_id
 		 JOIN users u ON u.id = ua.user_id
 		 WHERE e.id = $1
-		   AND u.city <> '' AND lower(u.city) = lower(e.city)
-		   AND ua.created_at < e.first_seen - interval '1 minute'`,
+		   AND u.city <> '' AND lower(u.city) = lower(e.city) `+extra,
 		eventID,
 	)
 	if err != nil {
-		return nil, fmt.Errorf("new show followers: %w", err)
+		return nil, fmt.Errorf("followers of %s: %w", eventID, err)
 	}
 	defer rows.Close()
 
