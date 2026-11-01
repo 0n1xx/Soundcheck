@@ -179,6 +179,7 @@ svg {
     background: none;
     border: 0;
     border-radius: var(--radius-md);
+    white-space: nowrap; /* one line, like Finder */
     cursor: pointer;
 }
 
@@ -186,12 +187,21 @@ svg {
 .sidebar__item.is-active { background: var(--color-select); }
 
 .sidebar__item svg {
+    flex-shrink: 0;
     width: 1.2em;
     height: 1.2em;
 }
 
+/* A label that doesn't fit is cut with "…" instead of wrapping */
+.sidebar__label {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
 /* Small counter on the right, like item counts in a file browser */
 .badge {
+    flex-shrink: 0;
     margin-left: auto;
     padding: 0 0.45em;
     color: var(--color-muted);

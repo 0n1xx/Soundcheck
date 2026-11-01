@@ -2,6 +2,7 @@
 package web
 
 import (
+	"context"
 	"embed"
 	"fmt"
 	"html/template"
@@ -139,9 +140,19 @@ func (s *Server) page(name string) http.HandlerFunc {
 	}
 }
 
-// notFound shows the 404 page with the right status code.
+// notFound shows the 404 page with the right status code. Logged-in users
+// keep their own sidebar, so a mistyped link doesn't look like a logout.
 func (s *Server) notFound(w http.ResponseWriter, r *http.Request) {
-	s.render(w, http.StatusNotFound, "not-found.html", pageData{})
+	data := pageData{}
+	if user, ok := s.currentUser(r); ok {
+		// The same thing requireUser does: remember who this is for dashboardData.
+		r = r.WithContext(context.WithValue(r.Context(), userKey{}, &user))
+		if d, err := s.dashboardData(r); err == nil {
+			data = d
+		}
+		// If loading fails, the visitor version of the page is still fine.
+	}
+	s.render(w, http.StatusNotFound, "not-found.html", data)
 }
 
 // render writes a page to the browser, filling it with data.
