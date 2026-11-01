@@ -25,6 +25,9 @@ const (
 	requestsPerSecond = 4
 	// artistTimeout gives up on one artist if Ticketmaster is too slow.
 	artistTimeout = 30 * time.Second
+	// reminderInterval is how often the worker looks for ticket sales
+	// starting soon. It only reads our database, so every minute is cheap.
+	reminderInterval = time.Minute
 )
 
 // Worker finds concerts for every followed artist and saves them.
@@ -55,9 +58,11 @@ func (w *Worker) Run(ctx context.Context) {
 	// First check right after start, so a fresh deploy has data quickly.
 	w.checkAll(ctx)
 
-	// The alarm clock: a signal every 3 hours.
+	// Two alarm clocks: Ticketmaster every 3 hours, reminders every minute.
 	ticker := time.NewTicker(interval)
 	defer ticker.Stop()
+	reminders := time.NewTicker(reminderInterval)
+	defer reminders.Stop()
 
 	for {
 		select {
@@ -66,6 +71,8 @@ func (w *Worker) Run(ctx context.Context) {
 			return
 		case <-ticker.C: // "3 hours passed, time for a round"
 			w.checkAll(ctx)
+		case <-reminders.C: // "a minute passed, any sales starting soon?"
+			w.remindOnSale(ctx)
 		}
 	}
 }
@@ -189,4 +196,33 @@ func (w *Worker) send(ctx context.Context, u core.User, eventID, kind string, ms
 		return
 	}
 	log.Printf("worker: sent %s alert about %s to user %d", kind, eventID, u.ID)
+}
+
+// remindOnSale sends "tickets on sale soon" reminders: one about a day
+// before public sales start, and one 15 minutes before.
+func (w *Worker) remindOnSale(ctx context.Context) {
+	now := time.Now()
+	// Up to a day ahead, but not the last hour: that's the 15-minute one's job.
+	w.remind(ctx, "onsale_24h", now.Add(time.Hour), now.Add(24*time.Hour), "Tickets go on sale soon")
+	w.remind(ctx, "onsale_15m", now, now.Add(15*time.Minute), "Tickets on sale in 15 minutes")
+}
+
+// remind sends one kind of on-sale reminder for sales starting between from and to.
+func (w *Worker) remind(ctx context.Context, kind string, from, to time.Time, title string) {
+	reminders, err := w.db.OnSaleReminders(ctx, from, to, kind)
+	if err != nil {
+		log.Printf("worker: %v", err)
+		return
+	}
+
+	for _, r := range reminders {
+		e := r.Event
+		msg := notify.Message{
+			Title: title + ": " + e.Name,
+			Text: e.Place() + "\n" + e.DateText() +
+				"\n\nSale starts " + e.VenueTime(e.OnSaleAt).Format("Mon, Jan 2 · 15:04"),
+			URL: e.URL,
+		}
+		w.send(ctx, r.User, e.ID, kind, msg)
+	}
 }

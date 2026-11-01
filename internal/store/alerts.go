@@ -3,6 +3,7 @@ package store
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/0n1xx/soundcheck/internal/core"
 )
@@ -64,4 +65,56 @@ func (s *Store) UnmarkAlert(ctx context.Context, userID int64, eventID, kind str
 		return fmt.Errorf("unmark alert: %w", err)
 	}
 	return nil
+}
+
+// Reminder is one alert waiting to be sent: which concert, to whom.
+type Reminder struct {
+	Event core.Event
+	User  core.User
+}
+
+// OnSaleReminders finds concerts whose public sale starts between from and
+// to, paired with every follower in the concert's city who hasn't had this
+// kind of reminder yet.
+func (s *Store) OnSaleReminders(ctx context.Context, from, to time.Time, kind string) ([]Reminder, error) {
+	rows, err := s.pool.Query(ctx,
+		`SELECT e.id, e.name, e.venue, e.city, e.url,
+		        e.starts_at, e.on_sale_at, e.status, e.timezone,
+		        u.id, u.email, COALESCE(u.telegram_chat_id, 0)
+		 FROM events e
+		 JOIN user_artists ua ON ua.tm_id = e.artist_id
+		 JOIN users u ON u.id = ua.user_id
+		 WHERE e.on_sale_at > $1 AND e.on_sale_at <= $2
+		   AND e.status <> 'cancelled'
+		   AND u.city <> '' AND lower(u.city) = lower(e.city)
+		   AND NOT EXISTS (
+		       SELECT 1 FROM sent_alerts sa
+		       WHERE sa.user_id = u.id AND sa.event_id = e.id AND sa.kind = $3
+		   )`,
+		from, to, kind,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("on-sale reminders: %w", err)
+	}
+	defer rows.Close()
+
+	var reminders []Reminder
+	for rows.Next() {
+		var r Reminder
+		var startsAt, onSaleAt *time.Time // may be NULL
+		err := rows.Scan(&r.Event.ID, &r.Event.Name, &r.Event.Venue, &r.Event.City, &r.Event.URL,
+			&startsAt, &onSaleAt, &r.Event.Status, &r.Event.Timezone,
+			&r.User.ID, &r.User.Email, &r.User.TelegramChatID)
+		if err != nil {
+			return nil, fmt.Errorf("read reminder: %w", err)
+		}
+		if startsAt != nil {
+			r.Event.StartsAt = *startsAt
+		}
+		if onSaleAt != nil {
+			r.Event.OnSaleAt = *onSaleAt
+		}
+		reminders = append(reminders, r)
+	}
+	return reminders, rows.Err()
 }
