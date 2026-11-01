@@ -87,6 +87,24 @@ ALTER TABLE soundcheck.users
 ALTER TABLE soundcheck.users
     ADD COLUMN IF NOT EXISTS google_id TEXT UNIQUE;
 
+-- Whether the user proved the email is theirs. Accounts linked to Google
+-- count as verified: Google has already checked the address.
+ALTER TABLE soundcheck.users
+    ADD COLUMN IF NOT EXISTS email_verified BOOLEAN NOT NULL DEFAULT false;
+UPDATE soundcheck.users SET email_verified = true
+    WHERE google_id IS NOT NULL AND NOT email_verified;
+
+-- One-time links for confirming an email address. Like sessions, only a
+-- hash of the token is stored. email is the address the link confirms,
+-- so a link sent before an email change can't confirm the new address.
+CREATE TABLE IF NOT EXISTS soundcheck.email_tokens (
+    token_hash TEXT PRIMARY KEY,
+    user_id    BIGINT NOT NULL REFERENCES soundcheck.users(id) ON DELETE CASCADE,
+    email      TEXT NOT NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    expires_at TIMESTAMPTZ NOT NULL
+);
+
 -- Alerts already sent, so nobody gets the same one twice.
 -- kind is "new", "onsale_24h", "onsale_15m", "cancelled", "rescheduled"...
 CREATE TABLE IF NOT EXISTS soundcheck.sent_alerts (

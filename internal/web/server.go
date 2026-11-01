@@ -35,6 +35,8 @@ type Config struct {
 	Telegram     *notify.Telegram // nil: Telegram is off
 	BotName      string           // the bot's username, for t.me links
 	Google       GoogleConfig     // empty ClientID: Google sign-in is off
+	Mailer       *notify.Email    // nil: email is off (no confirmation emails)
+	BaseURL      string           // the site's public address, for links in emails
 }
 
 // Server is the website: parsed pages, the database, Ticketmaster and the router.
@@ -47,6 +49,8 @@ type Server struct {
 	tg        *notify.Telegram     // the Telegram bot; nil if not configured
 	botName   string               // the bot's username, for t.me links
 	google    GoogleConfig         // Google sign-in
+	mailer    *notify.Email        // sends confirmation emails; nil if not configured
+	baseURL   string               // e.g. https://getsoundcheck.cc
 	http      *http.Client         // for requests to Google
 }
 
@@ -58,6 +62,7 @@ type pageData struct {
 	Email   string        // keeps what was typed in a form after an error
 	Error   string        // message shown above a form
 	Notice  string        // "Saved." after a settings form
+	Confirm bool          // show the "confirm your email" banner
 	Page    string        // which page is shown, e.g. "artists.html"; set by render
 }
 
@@ -84,6 +89,8 @@ func NewServer(cfg Config) (*Server, error) {
 		tg:        cfg.Telegram,
 		botName:   cfg.BotName,
 		google:    cfg.Google,
+		mailer:    cfg.Mailer,
+		baseURL:   cfg.BaseURL,
 		http:      &http.Client{Timeout: 10 * time.Second},
 	}
 
@@ -119,6 +126,11 @@ func NewServer(cfg Config) (*Server, error) {
 	s.mux.HandleFunc("POST /settings/password", s.requireUser(s.handleSetPassword))
 	s.mux.HandleFunc("POST /settings/notifications", s.requireUser(s.handleSetNotifications))
 	s.mux.HandleFunc("POST /account/delete", s.requireUser(s.handleDeleteAccount))
+
+	// Email confirmation (verify.go). The link from the email works logged out.
+	s.mux.HandleFunc("GET /verify-email", s.handleVerifyEmail)
+	s.mux.HandleFunc("POST /signup/resend", s.guestOnly(s.handleResendSignup))
+	s.mux.HandleFunc("POST /settings/email/resend", s.requireUser(s.handleResendVerification))
 
 	// Telegram (telegram.go).
 	s.mux.HandleFunc("POST /settings/telegram/connect", s.requireUser(s.handleConnectTelegram))
@@ -163,8 +175,13 @@ func (s *Server) page(name string) http.HandlerFunc {
 			return
 		}
 		// Settings forms come back with ?saved=1 after a successful save.
-		if r.URL.Query().Has("saved") {
+		switch q := r.URL.Query(); {
+		case q.Has("saved"):
 			data.Notice = "Saved."
+		case q.Has("verified"):
+			data.Notice = "Thanks, your email is confirmed."
+		case q.Has("sent"):
+			data.Notice = "We sent a confirmation link to your email."
 		}
 		s.render(w, http.StatusOK, name, data)
 	}

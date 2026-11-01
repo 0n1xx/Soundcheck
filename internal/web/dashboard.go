@@ -133,7 +133,14 @@ func (s *Server) dashboardData(r *http.Request) (pageData, error) {
 		return pageData{}, err
 	}
 
-	return pageData{User: user, Artists: artists, Shows: shows}, nil
+	return pageData{
+		User:    user,
+		Artists: artists,
+		Shows:   shows,
+		// Remind people to confirm their email, but only if the site can
+		// actually send email; otherwise there's no link to click.
+		Confirm: !user.EmailVerified && s.mailer != nil,
+	}, nil
 }
 
 // renderDashboard shows a dashboard page with an error message on top.

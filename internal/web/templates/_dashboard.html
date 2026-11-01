@@ -54,3 +54,15 @@
     <span>{{if eq .Page "shows.html"}}Upcoming shows{{else if eq .Page "artists.html"}}Artists{{else}}Settings{{end}}</span>
 </footer>
 {{end}}
+
+{{/* Reminder at the top of the dashboard until the email is confirmed */}}
+{{define "confirm-banner"}}
+{{if .Confirm}}
+<div class="banner" role="status">
+    <p><strong>Confirm your email.</strong> We sent a link to {{.User.Email}}. Until you click it, alerts aren't emailed to you.</p>
+    <form method="post" action="/settings/email/resend">
+        <button class="link-button" type="submit">Send it again</button>
+    </form>
+</div>
+{{end}}
+{{end}}

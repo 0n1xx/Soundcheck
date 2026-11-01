@@ -224,7 +224,12 @@ func (w *Worker) send(ctx context.Context, u core.User, eventID, kind string, ms
 		return
 	}
 
-	to := notify.Recipient{Email: u.Email, TelegramChatID: u.TelegramChatID}
+	// Emails only go to addresses the user has confirmed, so nobody can
+	// sign up with someone else's email and fill their inbox with alerts.
+	to := notify.Recipient{TelegramChatID: u.TelegramChatID}
+	if u.EmailVerified {
+		to.Email = u.Email
+	}
 	failures := 0
 	for _, n := range w.notifiers {
 		if err := n.Notify(ctx, to, msg); err != nil {

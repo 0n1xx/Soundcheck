@@ -34,6 +34,7 @@
         </header>
 
         <section class="content">
+            {{template "confirm-banner" .}}
             {{if .Error}}<p class="form-error" role="alert">{{.Error}}</p>{{end}}
 
             {{if .Artists}}

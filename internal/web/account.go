@@ -2,6 +2,7 @@ package web
 
 import (
 	"errors"
+	"log"
 	"net/http"
 	"strings"
 
@@ -26,6 +27,15 @@ func (s *Server) handleSetEmail(w http.ResponseWriter, r *http.Request) {
 	}
 	if err != nil {
 		s.serverError(w, err)
+		return
+	}
+
+	// A new address has to be confirmed before alerts are emailed to it.
+	if !strings.EqualFold(email, user.Email) {
+		if err := s.sendVerification(r.Context(), user.ID, email); err != nil {
+			log.Printf("send verification: %v", err)
+		}
+		http.Redirect(w, r, "/settings?sent=1", http.StatusSeeOther)
 		return
 	}
 	saved(w, r)

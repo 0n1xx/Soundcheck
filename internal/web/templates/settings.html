@@ -44,6 +44,14 @@
                         </div>
                         <button class="button" type="submit">Save email</button>
                     </form>
+                    {{if .User.EmailVerified}}
+                    <p class="hint"><span class="status">● Confirmed.</span> Alerts can be emailed here.</p>
+                    {{else}}
+                    <p class="hint"><span class="status status--soon">● Not confirmed yet.</span> We don't email alerts until you click the link we sent.</p>
+                    <form method="post" action="/settings/email/resend">
+                        <button class="link-button" type="submit">Send the link again</button>
+                    </form>
+                    {{end}}
                 </section>
             </section>
 

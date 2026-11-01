@@ -28,7 +28,7 @@ func (s *Store) EventFollowers(ctx context.Context, eventID string) ([]core.User
 // extra is an optional SQL condition written in this file, never user input.
 func (s *Store) followers(ctx context.Context, eventID, extra string) ([]core.User, error) {
 	rows, err := s.pool.Query(ctx,
-		`SELECT u.id, u.email, COALESCE(u.telegram_chat_id, 0)
+		`SELECT u.id, u.email, u.email_verified, COALESCE(u.telegram_chat_id, 0)
 		 FROM events e
 		 JOIN user_artists ua ON ua.tm_id = e.artist_id
 		 JOIN users u ON u.id = ua.user_id
@@ -44,7 +44,7 @@ func (s *Store) followers(ctx context.Context, eventID, extra string) ([]core.Us
 	var users []core.User
 	for rows.Next() {
 		var u core.User
-		if err := rows.Scan(&u.ID, &u.Email, &u.TelegramChatID); err != nil {
+		if err := rows.Scan(&u.ID, &u.Email, &u.EmailVerified, &u.TelegramChatID); err != nil {
 			return nil, fmt.Errorf("read follower: %w", err)
 		}
 		users = append(users, u)
@@ -103,7 +103,7 @@ func (s *Store) OnSaleReminders(ctx context.Context, from, to time.Time, kind st
 	rows, err := s.pool.Query(ctx,
 		`SELECT e.id, e.name, e.venue, e.city, e.url,
 		        e.starts_at, e.on_sale_at, e.status, e.timezone,
-		        u.id, u.email, COALESCE(u.telegram_chat_id, 0)
+		        u.id, u.email, u.email_verified, COALESCE(u.telegram_chat_id, 0)
 		 FROM events e
 		 JOIN user_artists ua ON ua.tm_id = e.artist_id
 		 JOIN users u ON u.id = ua.user_id
@@ -128,7 +128,7 @@ func (s *Store) OnSaleReminders(ctx context.Context, from, to time.Time, kind st
 		var startsAt, onSaleAt *time.Time // may be NULL
 		err := rows.Scan(&r.Event.ID, &r.Event.Name, &r.Event.Venue, &r.Event.City, &r.Event.URL,
 			&startsAt, &onSaleAt, &r.Event.Status, &r.Event.Timezone,
-			&r.User.ID, &r.User.Email, &r.User.TelegramChatID)
+			&r.User.ID, &r.User.Email, &r.User.EmailVerified, &r.User.TelegramChatID)
 		if err != nil {
 			return nil, fmt.Errorf("read reminder: %w", err)
 		}

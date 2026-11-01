@@ -54,8 +54,9 @@ func (s *Server) handleSignup(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// New users start by adding the artists they follow.
-	s.startSession(w, r, user.ID, "/artists")
+	// No session yet: the account only works once the email is confirmed.
+	// The link in the email logs them in (see handleVerifyEmail).
+	s.showCheckEmail(w, r, user.ID, user.Email, "")
 }
 
 // handleLogin checks the email and password and logs the user in.
@@ -76,6 +77,14 @@ func (s *Server) handleLogin(w http.ResponseWriter, r *http.Request) {
 			Email: email,
 			Error: "Wrong email or password.",
 		})
+		return
+	}
+
+	// Right password, but the email was never confirmed: send a fresh
+	// link instead of logging in. (Only now, after the password matched,
+	// so nobody can use the form to find out which emails signed up.)
+	if !user.EmailVerified {
+		s.showCheckEmail(w, r, user.ID, user.Email, "Confirm your email to log in. We've sent you a new link.")
 		return
 	}
 

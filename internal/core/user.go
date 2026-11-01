@@ -10,6 +10,11 @@ type User struct {
 	City         string
 	CreatedAt    time.Time
 
+	// EmailVerified is true once the user clicked the confirmation link
+	// (or signed in with Google, which has already checked the address).
+	// Alerts are only emailed to verified addresses.
+	EmailVerified bool
+
 	// TelegramChatID is where Telegram alerts go; 0 if not connected.
 	TelegramChatID int64
 

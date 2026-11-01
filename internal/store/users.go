@@ -18,7 +18,12 @@ var (
 	ErrNotFound   = errors.New("not found")
 )
 
-// CreateUser saves a new user and returns it with its new ID.
+// CreateUser saves a new user, who can't log in until the email is confirmed.
+//
+// If someone already signed up with this email but never confirmed it, that
+// sign-up is replaced with this one: a stranger typing your address can't
+// block you from creating your own account. ErrEmailTaken means the email
+// belongs to a real (confirmed, Google or in-use) account.
 func (s *Store) CreateUser(ctx context.Context, email, passwordHash string) (core.User, error) {
 	u := core.User{
 		Email:        normalizeEmail(email),
@@ -26,13 +31,20 @@ func (s *Store) CreateUser(ctx context.Context, email, passwordHash string) (cor
 	}
 
 	err := s.pool.QueryRow(ctx,
-		`INSERT INTO users (email, password_hash)
+		`INSERT INTO users AS u (email, password_hash)
 		 VALUES ($1, $2)
+		 ON CONFLICT (email) DO UPDATE
+		     SET password_hash = EXCLUDED.password_hash, created_at = now()
+		     WHERE NOT u.email_verified AND u.google_id IS NULL
+		       AND NOT EXISTS (SELECT 1 FROM user_artists WHERE user_id = u.id)
 		 RETURNING id, created_at`,
 		u.Email, u.PasswordHash,
 	).Scan(&u.ID, &u.CreatedAt)
 
-	// 23505 is Postgres' code for "unique value already exists".
+	// No row back: the conflict hit an account we must not replace.
+	if errors.Is(err, pgx.ErrNoRows) {
+		return core.User{}, ErrEmailTaken
+	}
 	var pgErr *pgconn.PgError
 	if errors.As(err, &pgErr) && pgErr.Code == "23505" {
 		return core.User{}, ErrEmailTaken
@@ -47,7 +59,8 @@ func (s *Store) CreateUser(ctx context.Context, email, passwordHash string) (cor
 // Queries that load a user call the users table "u".
 const userColumns = `u.id, u.email, u.password_hash, u.city, u.created_at,
 	COALESCE(u.telegram_chat_id, 0),
-	u.notify_new, u.notify_24h, u.notify_15m, u.notify_changes`
+	u.notify_new, u.notify_24h, u.notify_15m, u.notify_changes,
+	u.email_verified`
 
 // scanUser reads one row selected with userColumns.
 func scanUser(row pgx.Row) (core.User, error) {
@@ -56,7 +69,8 @@ func scanUser(row pgx.Row) (core.User, error) {
 
 	err := row.Scan(&u.ID, &u.Email, &hash, &u.City, &u.CreatedAt,
 		&u.TelegramChatID,
-		&u.NotifyNew, &u.Notify24h, &u.Notify15m, &u.NotifyChanges)
+		&u.NotifyNew, &u.Notify24h, &u.Notify15m, &u.NotifyChanges,
+		&u.EmailVerified)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return core.User{}, ErrNotFound
 	}

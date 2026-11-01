@@ -8,6 +8,10 @@ type Message struct {
 	Title string // e.g. "New show: 2hollis in Toronto"
 	Text  string // the details, plain text
 	URL   string // where to buy tickets; may be empty
+
+	// For emails only; both have defaults for concert alerts.
+	Button string // the button's label; "Get tickets" if empty
+	Footer string // the small line under the email; about following artists if empty
 }
 
 // Recipient says where one user can be reached.

@@ -82,8 +82,10 @@ func main() {
 		tg = notify.NewTelegram(token)
 		channels = append(channels, tg)
 	}
+	var mailer *notify.Email
 	if key, from := os.Getenv("RESEND_API_KEY"), os.Getenv("EMAIL_FROM"); key != "" && from != "" {
-		channels = append(channels, notify.NewEmail(key, from, baseURL))
+		mailer = notify.NewEmail(key, from, baseURL)
+		channels = append(channels, mailer)
 	}
 
 	// One worker: it runs in the background, and the website can ask it
@@ -109,6 +111,8 @@ func main() {
 		Telegram:     tg,
 		BotName:      os.Getenv("TELEGRAM_BOT_USERNAME"),
 		Google:       google,
+		Mailer:       mailer,
+		BaseURL:      baseURL,
 	})
 	if err != nil {
 		log.Fatal(err)

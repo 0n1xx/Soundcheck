@@ -16,10 +16,14 @@ type Notifications struct {
 	Changes bool // a show is cancelled, postponed or moved
 }
 
-// SetEmail changes a user's email, or returns ErrEmailTaken.
+// SetEmail changes a user's email, or returns ErrEmailTaken. A new address
+// isn't verified yet; saving the same address again keeps it verified.
+// (On the right of SET, "email" is still the old value.)
 func (s *Store) SetEmail(ctx context.Context, userID int64, email string) error {
 	_, err := s.pool.Exec(ctx,
-		`UPDATE users SET email = $1 WHERE id = $2`,
+		`UPDATE users
+		 SET email = $1, email_verified = (email = $1 AND email_verified)
+		 WHERE id = $2`,
 		normalizeEmail(email), userID,
 	)
 	// 23505: another account already has this email (the column is UNIQUE).

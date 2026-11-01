@@ -79,9 +79,13 @@ func (e *Email) formatText(msg Message) string {
 		b.WriteString(msg.Text + "\n\n")
 	}
 	if msg.URL != "" {
-		b.WriteString("Get tickets: " + msg.URL + "\n\n")
+		b.WriteString(buttonLabel(msg) + ": " + msg.URL + "\n\n")
 	}
-	b.WriteString("Manage your alerts: " + e.baseURL + "/settings\n")
+	if msg.Footer != "" {
+		b.WriteString(msg.Footer + "\n")
+	} else {
+		b.WriteString("Manage your alerts: " + e.baseURL + "/settings\n")
+	}
 	return b.String()
 }
 
@@ -93,9 +97,15 @@ func (e *Email) formatHTML(msg Message) string {
 	// Line breaks in the text become <br> in HTML.
 	text := strings.ReplaceAll(esc(msg.Text), "\n", "<br>")
 
+	// The default footer links to Settings so people can turn alerts off.
+	footer := `You follow this artist on Soundcheck. <a href="` + esc(e.baseURL) + `/settings" style="color:#888">Manage your alerts</a>`
+	if msg.Footer != "" {
+		footer = esc(msg.Footer)
+	}
+
 	button := ""
 	if msg.URL != "" {
-		button = `<p style="margin:24px 0 0"><a href="` + esc(msg.URL) + `" style="display:inline-block;padding:10px 18px;color:#ffffff;font-weight:600;text-decoration:none;background:#3a7bd5;border-radius:6px">Get tickets</a></p>`
+		button = `<p style="margin:24px 0 0"><a href="` + esc(msg.URL) + `" style="display:inline-block;padding:10px 18px;color:#ffffff;font-weight:600;text-decoration:none;background:#3a7bd5;border-radius:6px">` + esc(buttonLabel(msg)) + `</a></p>`
 	}
 
 	return `<!doctype html>
@@ -108,9 +118,17 @@ func (e *Email) formatHTML(msg Message) string {
 <p style="margin:0;font-size:15px;line-height:1.5;color:#444">` + text + `</p>` + button + `
 </td></tr>
 </table>
-<p style="margin:16px 0 0;font-size:12px;color:#888">You follow this artist on Soundcheck. <a href="` + esc(e.baseURL) + `/settings" style="color:#888">Manage your alerts</a></p>
+<p style="margin:16px 0 0;font-size:12px;color:#888">` + footer + `</p>
 </td></tr></table>
 </body></html>`
+}
+
+// buttonLabel is the text of the email's button.
+func buttonLabel(msg Message) string {
+	if msg.Button != "" {
+		return msg.Button
+	}
+	return "Get tickets"
 }
 
 // Make sure Email really is a Notifier; the build fails otherwise.
