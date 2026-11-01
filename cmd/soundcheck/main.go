@@ -17,6 +17,7 @@ import (
 
 	"github.com/joho/godotenv"
 
+	"github.com/0n1xx/soundcheck/internal/notify"
 	"github.com/0n1xx/soundcheck/internal/store"
 	"github.com/0n1xx/soundcheck/internal/ticketmaster"
 	"github.com/0n1xx/soundcheck/internal/web"
@@ -74,9 +75,21 @@ func main() {
 	wk := worker.New(db, tm)
 	go wk.Run(ctx)
 
-	srv, err := web.NewServer(db, tm, wk)
+	// Telegram is optional: without a token the site works, just without it.
+	var tg *notify.Telegram
+	if token := os.Getenv("TELEGRAM_BOT_TOKEN"); token != "" {
+		tg = notify.NewTelegram(token)
+	}
+
+	srv, err := web.NewServer(db, tm, wk, tg, os.Getenv("TELEGRAM_BOT_USERNAME"))
 	if err != nil {
 		log.Fatal(err)
+	}
+
+	// The bot listens for /start in its own goroutine and hands each
+	// one to the website, which knows the users.
+	if tg != nil {
+		go tg.Listen(ctx, srv.TelegramStart)
 	}
 
 	httpServer := &http.Server{

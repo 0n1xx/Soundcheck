@@ -49,10 +49,11 @@ func (s *Store) UserByEmail(ctx context.Context, email string) (core.User, error
 	var hash *string // NULL in the database for Google sign-ins
 
 	err := s.pool.QueryRow(ctx,
-		`SELECT id, email, password_hash, city, created_at
+		`SELECT id, email, password_hash, city, created_at,
+		        COALESCE(telegram_chat_id, 0)
 		 FROM users WHERE email = $1`,
 		normalizeEmail(email),
-	).Scan(&u.ID, &u.Email, &hash, &u.City, &u.CreatedAt)
+	).Scan(&u.ID, &u.Email, &hash, &u.City, &u.CreatedAt, &u.TelegramChatID)
 
 	if errors.Is(err, pgx.ErrNoRows) {
 		return core.User{}, ErrNotFound

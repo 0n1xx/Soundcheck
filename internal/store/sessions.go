@@ -45,12 +45,13 @@ func (s *Store) UserBySession(ctx context.Context, token string) (core.User, err
 	var hash *string
 
 	err := s.pool.QueryRow(ctx,
-		`SELECT u.id, u.email, u.password_hash, u.city, u.created_at
+		`SELECT u.id, u.email, u.password_hash, u.city, u.created_at,
+		        COALESCE(u.telegram_chat_id, 0)
 		 FROM sessions s
 		 JOIN users u ON u.id = s.user_id
 		 WHERE s.token = $1 AND s.expires_at > now()`,
 		hashToken(token),
-	).Scan(&u.ID, &u.Email, &hash, &u.City, &u.CreatedAt)
+	).Scan(&u.ID, &u.Email, &hash, &u.City, &u.CreatedAt, &u.TelegramChatID)
 
 	if errors.Is(err, pgx.ErrNoRows) {
 		return core.User{}, ErrNotFound

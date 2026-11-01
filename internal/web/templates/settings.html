@@ -96,15 +96,24 @@
                 </section>
             </section>
 
-            <!-- Optional second channel, works from the bonus day -->
-            <section class="dialog" aria-labelledby="telegram-title">
+            <!-- Telegram: connect through the bot, or show that it's connected -->
+            <section class="dialog" id="telegram" aria-labelledby="telegram-title">
                 <header class="dialog__title">
                     <div class="lights" aria-hidden="true"><span></span><span></span><span></span></div>
                     <h2 id="telegram-title" class="dialog__heading">Telegram</h2>
                 </header>
                 <section class="dialog__body">
-                    <p class="hint hint--top">Get the same alerts as instant messages in Telegram.</p>
-                    <a class="button" href="/settings/telegram">Connect Telegram</a>
+                    {{if .User.TelegramChatID}}
+                    <p class="hint hint--top"><span class="status">● Connected.</span> Alerts arrive in Telegram.</p>
+                    <form method="post" action="/settings/telegram/disconnect">
+                        <button class="button" type="submit">Disconnect</button>
+                    </form>
+                    {{else}}
+                    <p class="hint hint--top">Get alerts as instant messages in Telegram.</p>
+                    <form method="post" action="/settings/telegram/connect">
+                        <button class="button" type="submit">Connect Telegram</button>
+                    </form>
+                    {{end}}
                 </section>
             </section>
 

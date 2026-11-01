@@ -10,6 +10,7 @@ import (
 	"net/http"
 
 	"github.com/0n1xx/soundcheck/internal/core"
+	"github.com/0n1xx/soundcheck/internal/notify"
 	"github.com/0n1xx/soundcheck/internal/store"
 	"github.com/0n1xx/soundcheck/internal/ticketmaster"
 	"github.com/0n1xx/soundcheck/internal/worker"
@@ -31,6 +32,8 @@ type Server struct {
 	db        *store.Store
 	tm        *ticketmaster.Client // checks that artists exist
 	worker    *worker.Worker       // checks a new artist's shows right away
+	tg        *notify.Telegram     // the Telegram bot; nil if not configured
+	botName   string               // the bot's username, for t.me links
 }
 
 // pageData is everything a page template can show.
@@ -44,7 +47,7 @@ type pageData struct {
 }
 
 // NewServer loads the pages and registers every route.
-func NewServer(db *store.Store, tm *ticketmaster.Client, wk *worker.Worker) (*Server, error) {
+func NewServer(db *store.Store, tm *ticketmaster.Client, wk *worker.Worker, tg *notify.Telegram, botName string) (*Server, error) {
 	// Helpers like showDate must be registered before the pages are parsed,
 	// otherwise Go won't know what {{showDate .}} means.
 	templates, err := template.New("").Funcs(templateFuncs).ParseFS(templateFiles, "templates/*.html")
@@ -63,6 +66,8 @@ func NewServer(db *store.Store, tm *ticketmaster.Client, wk *worker.Worker) (*Se
 		db:        db,
 		tm:        tm,
 		worker:    wk,
+		tg:        tg,
+		botName:   botName,
 	}
 
 	// CSS and other files are sent as they are.
@@ -87,6 +92,10 @@ func NewServer(db *store.Store, tm *ticketmaster.Client, wk *worker.Worker) (*Se
 	s.mux.HandleFunc("POST /artists/add", s.requireUser(s.handleAddArtist))
 	s.mux.HandleFunc("POST /artists/remove", s.requireUser(s.handleRemoveArtist))
 	s.mux.HandleFunc("POST /settings/city", s.requireUser(s.handleSetCity))
+
+	// Telegram (telegram.go).
+	s.mux.HandleFunc("POST /settings/telegram/connect", s.requireUser(s.handleConnectTelegram))
+	s.mux.HandleFunc("POST /settings/telegram/disconnect", s.requireUser(s.handleDisconnectTelegram))
 
 	// Anything else gets the "page not found" page.
 	s.mux.HandleFunc("/", s.notFound)

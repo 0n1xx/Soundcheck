@@ -63,6 +63,18 @@ CREATE INDEX IF NOT EXISTS events_artist_id_idx ON soundcheck.events (artist_id)
 -- Added after the table was created, hence ALTER.
 ALTER TABLE soundcheck.events
     ADD COLUMN IF NOT EXISTS timezone TEXT NOT NULL DEFAULT '';
+
+-- The user's Telegram chat, set when they connect the bot.
+ALTER TABLE soundcheck.users
+    ADD COLUMN IF NOT EXISTS telegram_chat_id BIGINT;
+
+-- One-time codes for connecting Telegram: the site puts the code in the
+-- bot link, the bot gets it back with /start and knows who it is.
+CREATE TABLE IF NOT EXISTS soundcheck.telegram_links (
+    code       TEXT PRIMARY KEY,
+    user_id    BIGINT NOT NULL REFERENCES soundcheck.users(id) ON DELETE CASCADE,
+    expires_at TIMESTAMPTZ NOT NULL
+);
 `
 
 // Migrate creates the schema and tables if they don't exist yet.
