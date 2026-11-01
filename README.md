@@ -36,6 +36,7 @@ I built it in a week to learn Go, using mostly the standard library: the web ser
 - **Two channels** — email, plus Telegram if you connect the bot in one click
 - **Your choice of alerts** — turn each kind of alert on or off in Settings
 - **Accounts** — sign up with email and password, or with Google; change your email or password, or delete your account anytime
+- **Verified emails** — a new account only works after you click the link sent to your inbox, so nobody can sign up with someone else's address and fill it with alerts
 - **Retro UI** — the whole site looks like the classic Mac OS X Finder: sidebar, folders, windows with traffic lights
 
 ## How it works
@@ -81,7 +82,9 @@ flowchart TB
 | **Time zones** | dates are stored in UTC with the venue's time zone and shown in local time; loaded zones are cached in a `sync.Map` |
 | **Telegram linking** | Settings creates a one-time code, the bot link carries it to Telegram, and a long-polling goroutine matches `/start <code>` back to the account |
 | **Auth** | bcrypt passwords with strength rules, random session tokens stored only as SHA-256 hashes, `HttpOnly` + `Secure` + `SameSite` cookies, Google OAuth with a `state` cookie |
-| **Hardening** | server timeouts against slow clients, security headers, API keys kept out of logs, cleanup of expired sessions and old concerts |
+| **Email verification** | sign-up sends a one-time link (hashed in the database, valid for 24 h, used up in a single `DELETE … RETURNING` statement); clicking it confirms the address and logs you in. Until then you can't log in and no alerts are emailed. A stranger's unconfirmed sign-up can't block the real owner, resends are limited to one a minute, and the page looks the same whether an email exists or not |
+| **Account takeover** | linking Google to an account whose email was never confirmed removes that account's password, Telegram chat and sessions, so whoever registered someone else's address loses access ("pre-account takeover") |
+| **Hardening** | server timeouts against slow clients, security headers, API keys kept out of logs, cleanup of expired sessions, links, unconfirmed sign-ups and old concerts |
 | **Database** | PostgreSQL through `pgx`, its own schema on a shared instance, schema created and updated on startup |
 
 ## Tech stack
