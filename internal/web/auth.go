@@ -91,16 +91,7 @@ func (s *Server) handleLogout(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	// MaxAge -1 tells the browser to delete the cookie right away.
-	http.SetCookie(w, &http.Cookie{
-		Name:     sessionCookie,
-		Value:    "",
-		Path:     "/",
-		MaxAge:   -1,
-		HttpOnly: true,
-		Secure:   true,
-		SameSite: http.SameSiteLaxMode,
-	})
+	clearSessionCookie(w)
 	http.Redirect(w, r, "/", http.StatusSeeOther)
 }
 
@@ -156,6 +147,20 @@ func (s *Server) startSession(w http.ResponseWriter, r *http.Request, userID int
 	// 303 tells the browser to open the next page with GET,
 	// so refreshing it doesn't resubmit the form.
 	http.Redirect(w, r, redirectTo, http.StatusSeeOther)
+}
+
+// clearSessionCookie removes the session cookie from the browser.
+// MaxAge -1 tells the browser to delete it right away.
+func clearSessionCookie(w http.ResponseWriter) {
+	http.SetCookie(w, &http.Cookie{
+		Name:     sessionCookie,
+		Value:    "",
+		Path:     "/",
+		MaxAge:   -1,
+		HttpOnly: true,
+		Secure:   true,
+		SameSite: http.SameSiteLaxMode,
+	})
 }
 
 // currentUser returns the logged-in user, if the request has a valid session.

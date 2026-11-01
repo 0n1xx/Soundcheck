@@ -10,8 +10,6 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/jackc/pgx/v5"
-
 	"github.com/0n1xx/soundcheck/internal/core"
 )
 
@@ -41,29 +39,17 @@ func (s *Store) CreateSession(ctx context.Context, userID int64) (string, time.T
 // UserBySession finds who owns a session token, or returns ErrNotFound
 // if the token is unknown or expired.
 func (s *Store) UserBySession(ctx context.Context, token string) (core.User, error) {
-	var u core.User
-	var hash *string
-
-	err := s.pool.QueryRow(ctx,
-		`SELECT u.id, u.email, u.password_hash, u.city, u.created_at,
-		        COALESCE(u.telegram_chat_id, 0)
+	u, err := scanUser(s.pool.QueryRow(ctx,
+		`SELECT `+userColumns+`
 		 FROM sessions s
 		 JOIN users u ON u.id = s.user_id
 		 WHERE s.token = $1 AND s.expires_at > now()`,
 		hashToken(token),
-	).Scan(&u.ID, &u.Email, &hash, &u.City, &u.CreatedAt, &u.TelegramChatID)
-
-	if errors.Is(err, pgx.ErrNoRows) {
-		return core.User{}, ErrNotFound
-	}
-	if err != nil {
+	))
+	if err != nil && !errors.Is(err, ErrNotFound) {
 		return core.User{}, fmt.Errorf("find session: %w", err)
 	}
-
-	if hash != nil {
-		u.PasswordHash = *hash
-	}
-	return u, nil
+	return u, err
 }
 
 // DeleteSession logs a browser out.
@@ -80,4 +66,17 @@ func (s *Store) DeleteSession(ctx context.Context, token string) error {
 func hashToken(token string) string {
 	sum := sha256.Sum256([]byte(token))
 	return hex.EncodeToString(sum[:])
+}
+
+// DeleteOtherSessions logs a user out everywhere except this browser.
+// Used after a password change, in case someone else knew the old one.
+func (s *Store) DeleteOtherSessions(ctx context.Context, userID int64, keepToken string) error {
+	_, err := s.pool.Exec(ctx,
+		`DELETE FROM sessions WHERE user_id = $1 AND token <> $2`,
+		userID, hashToken(keepToken),
+	)
+	if err != nil {
+		return fmt.Errorf("delete other sessions: %w", err)
+	}
+	return nil
 }

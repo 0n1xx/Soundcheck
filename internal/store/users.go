@@ -43,29 +43,43 @@ func (s *Store) CreateUser(ctx context.Context, email, passwordHash string) (cor
 	return u, nil
 }
 
-// UserByEmail finds a user by email, or returns ErrNotFound.
-func (s *Store) UserByEmail(ctx context.Context, email string) (core.User, error) {
+// userColumns is every column of a user, in the order scanUser reads them.
+// Queries that load a user call the users table "u".
+const userColumns = `u.id, u.email, u.password_hash, u.city, u.created_at,
+	COALESCE(u.telegram_chat_id, 0),
+	u.notify_new, u.notify_24h, u.notify_15m, u.notify_changes`
+
+// scanUser reads one row selected with userColumns.
+func scanUser(row pgx.Row) (core.User, error) {
 	var u core.User
 	var hash *string // NULL in the database for Google sign-ins
 
-	err := s.pool.QueryRow(ctx,
-		`SELECT id, email, password_hash, city, created_at,
-		        COALESCE(telegram_chat_id, 0)
-		 FROM users WHERE email = $1`,
-		normalizeEmail(email),
-	).Scan(&u.ID, &u.Email, &hash, &u.City, &u.CreatedAt, &u.TelegramChatID)
-
+	err := row.Scan(&u.ID, &u.Email, &hash, &u.City, &u.CreatedAt,
+		&u.TelegramChatID,
+		&u.NotifyNew, &u.Notify24h, &u.Notify15m, &u.NotifyChanges)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return core.User{}, ErrNotFound
 	}
 	if err != nil {
-		return core.User{}, fmt.Errorf("find user by email: %w", err)
+		return core.User{}, err
 	}
 
 	if hash != nil {
 		u.PasswordHash = *hash
 	}
 	return u, nil
+}
+
+// UserByEmail finds a user by email, or returns ErrNotFound.
+func (s *Store) UserByEmail(ctx context.Context, email string) (core.User, error) {
+	u, err := scanUser(s.pool.QueryRow(ctx,
+		`SELECT `+userColumns+` FROM users u WHERE u.email = $1`,
+		normalizeEmail(email),
+	))
+	if err != nil && !errors.Is(err, ErrNotFound) {
+		return core.User{}, fmt.Errorf("find user by email: %w", err)
+	}
+	return u, err
 }
 
 // normalizeEmail makes "Vlad@Example.com " and "vlad@example.com" the same user.

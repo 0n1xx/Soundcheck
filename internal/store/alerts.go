@@ -14,13 +14,14 @@ import (
 // shows that were already announced when someone added the artist; those
 // are on the Upcoming shows page anyway.
 func (s *Store) NewShowFollowers(ctx context.Context, eventID string) ([]core.User, error) {
-	return s.followers(ctx, eventID, `AND ua.created_at < e.first_seen - interval '1 minute'`)
+	return s.followers(ctx, eventID,
+		`AND u.notify_new AND ua.created_at < e.first_seen - interval '1 minute'`)
 }
 
-// EventFollowers returns everyone who follows the concert's artist and lives
-// in its city. Used for cancellations and new dates: everyone should know.
+// EventFollowers returns everyone who follows the concert's artist, lives
+// in its city and wants to hear about cancellations and new dates.
 func (s *Store) EventFollowers(ctx context.Context, eventID string) ([]core.User, error) {
-	return s.followers(ctx, eventID, "")
+	return s.followers(ctx, eventID, `AND u.notify_changes`)
 }
 
 // followers finds the users who follow an event's artist in the event's city.
@@ -84,10 +85,21 @@ type Reminder struct {
 	User  core.User
 }
 
+// reminderSetting maps each reminder kind to the user setting that turns it on.
+var reminderSetting = map[string]string{
+	"onsale_24h": "u.notify_24h",
+	"onsale_15m": "u.notify_15m",
+}
+
 // OnSaleReminders finds concerts whose public sale starts between from and
-// to, paired with every follower in the concert's city who hasn't had this
-// kind of reminder yet.
+// to, paired with every follower in the concert's city who wants this kind
+// of reminder and hasn't had it yet.
 func (s *Store) OnSaleReminders(ctx context.Context, from, to time.Time, kind string) ([]Reminder, error) {
+	setting, ok := reminderSetting[kind]
+	if !ok {
+		return nil, fmt.Errorf("unknown reminder kind %q", kind)
+	}
+
 	rows, err := s.pool.Query(ctx,
 		`SELECT e.id, e.name, e.venue, e.city, e.url,
 		        e.starts_at, e.on_sale_at, e.status, e.timezone,
@@ -98,6 +110,7 @@ func (s *Store) OnSaleReminders(ctx context.Context, from, to time.Time, kind st
 		 WHERE e.on_sale_at > $1 AND e.on_sale_at <= $2
 		   AND e.status <> 'cancelled'
 		   AND u.city <> '' AND lower(u.city) = lower(e.city)
+		   AND `+setting+`
 		   AND NOT EXISTS (
 		       SELECT 1 FROM sent_alerts sa
 		       WHERE sa.user_id = u.id AND sa.event_id = e.id AND sa.kind = $3

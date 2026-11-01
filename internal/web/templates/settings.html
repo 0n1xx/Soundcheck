@@ -21,6 +21,7 @@
         <!-- Each group of settings is its own small window, like old system preferences -->
         <section class="content settings">
             {{if .Error}}<p class="form-error" role="alert">{{.Error}}</p>{{end}}
+            {{if .Notice}}<p class="form-notice" role="status">{{.Notice}}</p>{{end}}
 
             <!-- Email -->
             <section class="dialog" aria-labelledby="email-title">
@@ -39,7 +40,7 @@
                 </section>
             </section>
 
-            <!-- Password (hidden later for people who signed up with Google) -->
+            <!-- Password: Google sign-ins have none yet, so they just set one -->
             <section class="dialog" aria-labelledby="password-title">
                 <header class="dialog__title">
                     <div class="lights" aria-hidden="true"><span></span><span></span><span></span></div>
@@ -47,10 +48,14 @@
                 </header>
                 <section class="dialog__body">
                     <form method="post" action="/settings/password">
+                        {{if .User.PasswordHash}}
                         <div class="field">
                             <label for="current-password">Current password</label>
                             <input id="current-password" name="current_password" type="password" autocomplete="current-password" required>
                         </div>
+                        {{else}}
+                        <p class="hint hint--top">You sign in with Google. Set a password to also log in with your email.</p>
+                        {{end}}
                         <div class="field">
                             <label for="new-password">New password</label>
                             <input id="new-password" name="new_password" type="password" autocomplete="new-password" minlength="8" required>
@@ -76,7 +81,7 @@
                 </section>
             </section>
 
-            <!-- Which emails to send -->
+            <!-- Which alerts to send -->
             <section class="dialog" aria-labelledby="notify-title">
                 <header class="dialog__title">
                     <div class="lights" aria-hidden="true"><span></span><span></span><span></span></div>
@@ -85,11 +90,11 @@
                 <section class="dialog__body">
                     <form method="post" action="/settings/notifications">
                         <fieldset class="checks">
-                            <legend class="visually-hidden">Email me when</legend>
-                            <label class="check"><input type="checkbox" name="notify_new" checked> A new show is announced</label>
-                            <label class="check"><input type="checkbox" name="notify_24h" checked> 24 hours before tickets go on sale</label>
-                            <label class="check"><input type="checkbox" name="notify_15m" checked> 15 minutes before tickets go on sale</label>
-                            <label class="check"><input type="checkbox" name="notify_changes" checked> A show is cancelled or rescheduled</label>
+                            <legend class="visually-hidden">Notify me when</legend>
+                            <label class="check"><input type="checkbox" name="notify_new"{{if .User.NotifyNew}} checked{{end}}> A new show is announced</label>
+                            <label class="check"><input type="checkbox" name="notify_24h"{{if .User.Notify24h}} checked{{end}}> 24 hours before tickets go on sale</label>
+                            <label class="check"><input type="checkbox" name="notify_15m"{{if .User.Notify15m}} checked{{end}}> 15 minutes before tickets go on sale</label>
+                            <label class="check"><input type="checkbox" name="notify_changes"{{if .User.NotifyChanges}} checked{{end}}> A show is cancelled or rescheduled</label>
                         </fieldset>
                         <button class="button" type="submit">Save notifications</button>
                     </form>
@@ -125,7 +130,7 @@
                 </header>
                 <section class="dialog__body">
                     <form method="post" action="/account/delete">
-                        <p class="hint hint--top">This removes your email, city and artists for good.</p>
+                        <p class="hint hint--top">This removes your email, city, artists and Telegram connection for good.</p>
                         <label class="check"><input type="checkbox" name="confirm" required> I understand this can't be undone</label>
                         <button class="button button--danger" type="submit">Delete my account</button>
                     </form>

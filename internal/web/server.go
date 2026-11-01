@@ -43,6 +43,7 @@ type pageData struct {
 	Shows   []core.Event  // upcoming shows of those artists in the user's city
 	Email   string        // keeps what was typed in a form after an error
 	Error   string        // message shown above a form
+	Notice  string        // "Saved." after a settings form
 	Page    string        // which page is shown, e.g. "artists.html"; set by render
 }
 
@@ -93,6 +94,12 @@ func NewServer(db *store.Store, tm *ticketmaster.Client, wk *worker.Worker, tg *
 	s.mux.HandleFunc("POST /artists/remove", s.requireUser(s.handleRemoveArtist))
 	s.mux.HandleFunc("POST /settings/city", s.requireUser(s.handleSetCity))
 
+	// Account settings (account.go).
+	s.mux.HandleFunc("POST /settings/email", s.requireUser(s.handleSetEmail))
+	s.mux.HandleFunc("POST /settings/password", s.requireUser(s.handleSetPassword))
+	s.mux.HandleFunc("POST /settings/notifications", s.requireUser(s.handleSetNotifications))
+	s.mux.HandleFunc("POST /account/delete", s.requireUser(s.handleDeleteAccount))
+
 	// Telegram (telegram.go).
 	s.mux.HandleFunc("POST /settings/telegram/connect", s.requireUser(s.handleConnectTelegram))
 	s.mux.HandleFunc("POST /settings/telegram/disconnect", s.requireUser(s.handleDisconnectTelegram))
@@ -123,6 +130,10 @@ func (s *Server) page(name string) http.HandlerFunc {
 		if err != nil {
 			s.serverError(w, err)
 			return
+		}
+		// Settings forms come back with ?saved=1 after a successful save.
+		if r.URL.Query().Has("saved") {
+			data.Notice = "Saved."
 		}
 		s.render(w, http.StatusOK, name, data)
 	}

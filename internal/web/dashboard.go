@@ -112,7 +112,7 @@ func (s *Server) handleSetCity(w http.ResponseWriter, r *http.Request) {
 		s.serverError(w, err)
 		return
 	}
-	http.Redirect(w, r, "/settings", http.StatusSeeOther)
+	saved(w, r)
 }
 
 // ---- Page data --------------------------------------------------------------
