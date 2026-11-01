@@ -15,6 +15,7 @@
   <img src="https://img.shields.io/badge/Go-1.27-00ADD8?style=flat-square&logo=go&logoColor=white" alt="Go 1.27">
   <img src="https://img.shields.io/badge/PostgreSQL-4169E1?style=flat-square&logo=postgresql&logoColor=white" alt="PostgreSQL">
   <img src="https://img.shields.io/badge/Deployed%20on-Railway-0B0D0E?style=flat-square&logo=railway&logoColor=white" alt="Railway">
+  <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-yellow?style=flat-square" alt="MIT License"></a>
 </p>
 
 ---
@@ -136,3 +137,7 @@ docker run --env-file .env -p 8080:8080 soundcheck
 ## What I learned
 
 This was my first Go project, so it covers a lot of the language: packages and the `internal/` layout, structs, methods and interfaces (implicit, checked at compile time with `var _ Notifier = (*Telegram)(nil)`), errors as values with `%w` and `errors.Is/As`, goroutines and `context` for cancellation, `errgroup` and rate limiting, `select` with several tickers, `sync.Map` for shared state, closures for middleware, method values as callbacks, and `embed` to ship templates inside the binary.
+
+## License
+
+[MIT](LICENSE) © 2026 Vladislav Sakharov
