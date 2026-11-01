@@ -73,11 +73,18 @@ func toEvent(e event) core.Event {
 		ev.City = e.Embedded.Venues[0].City.Name
 	}
 
+	// The venue's time zone, used to show dates as local time.
+	ev.Timezone = e.Dates.Timezone
+	loc := time.UTC
+	if l, err := time.LoadLocation(ev.Timezone); err == nil {
+		loc = l
+	}
+
 	// Prefer the exact UTC start time; fall back to the date alone
-	// for events whose time has not been announced yet.
+	// (midnight at the venue) for events whose time isn't announced yet.
 	if t, err := time.Parse(time.RFC3339, e.Dates.Start.DateTime); err == nil {
 		ev.StartsAt = t
-	} else if t, err := time.Parse("2006-01-02", e.Dates.Start.LocalDate); err == nil {
+	} else if t, err := time.ParseInLocation("2006-01-02", e.Dates.Start.LocalDate, loc); err == nil {
 		ev.StartsAt = t
 	}
 

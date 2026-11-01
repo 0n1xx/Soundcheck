@@ -24,6 +24,7 @@ type event struct {
 		Status struct {
 			Code string `json:"code"` // "onsale", "offsale", "cancelled", "rescheduled"...
 		} `json:"status"`
+		Timezone string `json:"timezone"` // the venue's time zone, e.g. "America/Toronto"
 	} `json:"dates"`
 
 	Sales struct {

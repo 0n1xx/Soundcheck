@@ -19,9 +19,31 @@
         </header>
 
         <section class="content">
-            <!-- Real shows arrive with the background worker in the next step -->
-            {{if .Artists}}
-            <p class="empty">No upcoming shows yet. Shows for your {{len .Artists}} artist{{if ne (len .Artists) 1}}s{{end}}{{if .User.City}} in {{.User.City}}{{end}} will appear here.</p>
+            {{if .Shows}}
+            <table class="list">
+                <thead>
+                    <tr>
+                        <th>Name</th>
+                        <th>Venue</th>
+                        <th>Date</th>
+                        <th>Tickets</th>
+                        <th><span class="visually-hidden">Link</span></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {{range .Shows}}
+                    <tr>
+                        <td><span class="name"><svg aria-hidden="true"><use href="#i-ticket"/></svg>{{.Name}}</span></td>
+                        <td class="muted">{{.Venue}}{{if and .Venue .City}}, {{end}}{{.City}}</td>
+                        <td class="muted">{{showDate .}}</td>
+                        <td>{{with showStatus .}}<span class="status {{.Class}}">{{.Label}}</span>{{end}}</td>
+                        <td>{{if .URL}}<a class="button" href="{{.URL}}" target="_blank" rel="noopener">Get tickets</a>{{end}}</td>
+                    </tr>
+                    {{end}}
+                </tbody>
+            </table>
+            {{else if .Artists}}
+            <p class="empty">No upcoming shows{{if .User.City}} in {{.User.City}}{{end}} yet. We check Ticketmaster every few hours and will list them here.</p>
             {{else}}
             <p class="empty">Add the artists you follow and their shows will appear here. <a href="/artists">Add artists</a></p>
             {{end}}

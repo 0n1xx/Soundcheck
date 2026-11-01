@@ -37,6 +37,7 @@ type Server struct {
 type pageData struct {
 	User    *core.User    // the logged-in user, or nil for visitors
 	Artists []core.Artist // artists the logged-in user follows
+	Shows   []core.Event  // upcoming shows of those artists in the user's city
 	Email   string        // keeps what was typed in a form after an error
 	Error   string        // message shown above a form
 	Page    string        // which page is shown, e.g. "artists.html"; set by render
@@ -44,7 +45,9 @@ type pageData struct {
 
 // NewServer loads the pages and registers every route.
 func NewServer(db *store.Store, tm *ticketmaster.Client, wk *worker.Worker) (*Server, error) {
-	templates, err := template.ParseFS(templateFiles, "templates/*.html")
+	// Helpers like showDate must be registered before the pages are parsed,
+	// otherwise Go won't know what {{showDate .}} means.
+	templates, err := template.New("").Funcs(templateFuncs).ParseFS(templateFiles, "templates/*.html")
 	if err != nil {
 		return nil, fmt.Errorf("parse templates: %w", err)
 	}

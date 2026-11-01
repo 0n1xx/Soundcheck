@@ -671,6 +671,11 @@ textarea:focus-visible {
     color: var(--color-warning);
 }
 
+/* Cancelled or no longer on sale */
+.status--off {
+    color: var(--color-danger);
+}
+
 /* Shown when a list is empty */
 .empty {
     padding: var(--space-7) var(--space-4);

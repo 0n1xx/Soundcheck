@@ -23,7 +23,7 @@
 
     <nav aria-label="Main">
         <p class="sidebar__title">Library</p>
-        <a class="sidebar__item{{if eq .Page "shows.html"}} is-active{{end}}" href="/shows"{{if eq .Page "shows.html"}} aria-current="page"{{end}}><svg><use href="#i-folder"/></svg>Upcoming shows</a>
+        <a class="sidebar__item{{if eq .Page "shows.html"}} is-active{{end}}" href="/shows"{{if eq .Page "shows.html"}} aria-current="page"{{end}}><svg><use href="#i-folder"/></svg>Upcoming shows<span class="badge">{{len .Shows}}</span></a>
         <a class="sidebar__item{{if eq .Page "artists.html"}} is-active{{end}}" href="/artists"{{if eq .Page "artists.html"}} aria-current="page"{{end}}><svg><use href="#i-folder"/></svg>Artists<span class="badge">{{len .Artists}}</span></a>
 
         <p class="sidebar__title">Location</p>

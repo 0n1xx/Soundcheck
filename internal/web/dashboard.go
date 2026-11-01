@@ -126,7 +126,14 @@ func (s *Server) dashboardData(r *http.Request) (pageData, error) {
 	if err != nil {
 		return pageData{}, err
 	}
-	return pageData{User: user, Artists: artists}, nil
+
+	// Loaded on every dashboard page, so the sidebar can show the count.
+	shows, err := s.db.UpcomingShows(r.Context(), user.ID, user.City)
+	if err != nil {
+		return pageData{}, err
+	}
+
+	return pageData{User: user, Artists: artists, Shows: shows}, nil
 }
 
 // renderDashboard shows a dashboard page with an error message on top.

@@ -29,11 +29,11 @@ func (s *Store) SaveEvent(ctx context.Context, e core.Event) (EventChange, error
 	// 1. Try to insert. ON CONFLICT DO NOTHING means: if a concert with this
 	//    ID already exists, skip quietly instead of failing.
 	tag, err := s.pool.Exec(ctx,
-		`INSERT INTO events (id, artist_id, name, venue, city, url, starts_at, on_sale_at, status)
-		 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+		`INSERT INTO events (id, artist_id, name, venue, city, url, starts_at, on_sale_at, status, timezone)
+		 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
 		 ON CONFLICT (id) DO NOTHING`,
 		e.ID, e.ArtistID, e.Name, e.Venue, e.City, e.URL,
-		nullTime(e.StartsAt), nullTime(e.OnSaleAt), e.Status,
+		nullTime(e.StartsAt), nullTime(e.OnSaleAt), e.Status, e.Timezone,
 	)
 	if err != nil {
 		return EventUnchanged, fmt.Errorf("insert event %s: %w", e.ID, err)
@@ -61,10 +61,11 @@ func (s *Store) SaveEvent(ctx context.Context, e core.Event) (EventChange, error
 	_, err = s.pool.Exec(ctx,
 		`UPDATE events
 		 SET name = $2, venue = $3, city = $4, url = $5,
-		     starts_at = $6, on_sale_at = $7, status = $8, updated_at = now()
+		     starts_at = $6, on_sale_at = $7, status = $8, timezone = $9,
+		     updated_at = now()
 		 WHERE id = $1`,
 		e.ID, e.Name, e.Venue, e.City, e.URL,
-		nullTime(e.StartsAt), nullTime(e.OnSaleAt), e.Status,
+		nullTime(e.StartsAt), nullTime(e.OnSaleAt), e.Status, e.Timezone,
 	)
 	if err != nil {
 		return EventUnchanged, fmt.Errorf("update event %s: %w", e.ID, err)

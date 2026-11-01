@@ -15,4 +15,5 @@ type Event struct {
 	StartsAt time.Time // zero if the date isn't announced yet
 	OnSaleAt time.Time // when public ticket sales start; zero if unknown
 	Status   string    // "onsale", "offsale", "cancelled", "rescheduled", "postponed"...
+	Timezone string    // the venue's time zone, e.g. "America/Toronto"; "" if unknown
 }

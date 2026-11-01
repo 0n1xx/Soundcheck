@@ -58,6 +58,11 @@ CREATE TABLE IF NOT EXISTS soundcheck.events (
 
 -- The Upcoming shows page looks events up by artist.
 CREATE INDEX IF NOT EXISTS events_artist_id_idx ON soundcheck.events (artist_id);
+
+-- The venue's time zone, to show dates in local time.
+-- Added after the table was created, hence ALTER.
+ALTER TABLE soundcheck.events
+    ADD COLUMN IF NOT EXISTS timezone TEXT NOT NULL DEFAULT '';
 `
 
 // Migrate creates the schema and tables if they don't exist yet.
