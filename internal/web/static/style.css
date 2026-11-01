@@ -306,6 +306,47 @@ textarea:focus-visible {
     font-size: var(--text-xs);
 }
 
+/* Password field with a show/hide button (added by password.js) */
+.password-field {
+    position: relative;
+    display: grid;
+}
+
+.password-field input {
+    padding-right: 2.6em; /* room for the eye button */
+}
+
+.password-toggle {
+    position: absolute;
+    top: 50%;
+    right: 0.35em;
+    display: grid;
+    place-items: center;
+    width: 1.9em;
+    height: 1.9em;
+    padding: 0;
+    color: var(--color-muted);
+    background: none;
+    border: 0;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    transform: translateY(-50%);
+}
+
+.password-toggle:hover {
+    color: var(--color-text);
+}
+
+.password-toggle:focus-visible {
+    outline: none;
+    box-shadow: var(--focus-ring);
+}
+
+.password-toggle svg {
+    width: 1.15em;
+    height: 1.15em;
+}
+
 /* Input and button on one line */
 .inline-form {
     display: flex;
