@@ -12,6 +12,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 	"time"
 
@@ -70,7 +71,10 @@ func main() {
 	// One Ticketmaster client, shared by the website and the worker.
 	tm := ticketmaster.New(tmKey)
 
-	// Telegram is optional: without a token the site works, just without it.
+	// The site's public address, for links in alerts and Google sign-in.
+	baseURL := strings.TrimRight(os.Getenv("APP_BASE_URL"), "/")
+
+	// Alert channels are optional: each one is on only if it's configured.
 	// Every working channel goes into the list the worker sends alerts through.
 	var tg *notify.Telegram
 	var channels []notify.Notifier
@@ -78,13 +82,34 @@ func main() {
 		tg = notify.NewTelegram(token)
 		channels = append(channels, tg)
 	}
+	if key, from := os.Getenv("RESEND_API_KEY"), os.Getenv("EMAIL_FROM"); key != "" && from != "" {
+		channels = append(channels, notify.NewEmail(key, from, baseURL))
+	}
 
 	// One worker: it runs in the background, and the website can ask it
 	// to check a newly added artist right away.
 	wk := worker.New(db, tm, channels...)
 	go wk.Run(ctx)
 
-	srv, err := web.NewServer(db, tm, wk, tg, os.Getenv("TELEGRAM_BOT_USERNAME"))
+	// Google sign-in needs the site's public address for the way back.
+	google := web.GoogleConfig{
+		ClientID:     os.Getenv("GOOGLE_CLIENT_ID"),
+		ClientSecret: os.Getenv("GOOGLE_CLIENT_SECRET"),
+		RedirectURL:  baseURL + "/auth/google/callback",
+	}
+	if google.ClientID != "" && baseURL == "" {
+		log.Println("APP_BASE_URL is not set, so Google sign-in is off")
+		google = web.GoogleConfig{}
+	}
+
+	srv, err := web.NewServer(web.Config{
+		DB:           db,
+		Ticketmaster: tm,
+		Worker:       wk,
+		Telegram:     tg,
+		BotName:      os.Getenv("TELEGRAM_BOT_USERNAME"),
+		Google:       google,
+	})
 	if err != nil {
 		log.Fatal(err)
 	}

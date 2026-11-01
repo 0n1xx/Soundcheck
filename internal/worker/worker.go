@@ -220,16 +220,18 @@ func (w *Worker) send(ctx context.Context, u core.User, eventID, kind string, ms
 	}
 
 	to := notify.Recipient{Email: u.Email, TelegramChatID: u.TelegramChatID}
-	failed := false
+	failures := 0
 	for _, n := range w.notifiers {
 		if err := n.Notify(ctx, to, msg); err != nil {
 			log.Printf("worker: %s alert to user %d: %v", kind, u.ID, err)
-			failed = true
+			failures++
 		}
 	}
 
-	// Nothing reached the user: give the ticket back so a later run can retry.
-	if failed {
+	// Every channel failed, so nothing reached the user: give the ticket back
+	// so a later run can retry. If at least one channel worked, keep it, or
+	// the retry would send that channel's message a second time.
+	if len(w.notifiers) > 0 && failures == len(w.notifiers) {
 		if err := w.db.UnmarkAlert(ctx, u.ID, eventID, kind); err != nil {
 			log.Printf("worker: %v", err)
 		}

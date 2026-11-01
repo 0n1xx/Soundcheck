@@ -83,6 +83,10 @@ ALTER TABLE soundcheck.users
     ADD COLUMN IF NOT EXISTS notify_15m     BOOLEAN NOT NULL DEFAULT true,
     ADD COLUMN IF NOT EXISTS notify_changes BOOLEAN NOT NULL DEFAULT true;
 
+-- Google's ID for people who sign in with Google.
+ALTER TABLE soundcheck.users
+    ADD COLUMN IF NOT EXISTS google_id TEXT UNIQUE;
+
 -- Alerts already sent, so nobody gets the same one twice.
 -- kind is "new", "onsale_24h", "onsale_15m", "cancelled", "rescheduled"...
 CREATE TABLE IF NOT EXISTS soundcheck.sent_alerts (

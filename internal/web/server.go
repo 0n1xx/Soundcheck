@@ -9,6 +9,7 @@ import (
 	"io/fs"
 	"log"
 	"net/http"
+	"time"
 
 	"github.com/0n1xx/soundcheck/internal/core"
 	"github.com/0n1xx/soundcheck/internal/notify"
@@ -26,6 +27,16 @@ var templateFiles embed.FS
 //go:embed static
 var staticFiles embed.FS
 
+// Config is everything the website needs. Optional parts can stay empty.
+type Config struct {
+	DB           *store.Store
+	Ticketmaster *ticketmaster.Client
+	Worker       *worker.Worker
+	Telegram     *notify.Telegram // nil: Telegram is off
+	BotName      string           // the bot's username, for t.me links
+	Google       GoogleConfig     // empty ClientID: Google sign-in is off
+}
+
 // Server is the website: parsed pages, the database, Ticketmaster and the router.
 type Server struct {
 	mux       *http.ServeMux
@@ -35,6 +46,8 @@ type Server struct {
 	worker    *worker.Worker       // checks a new artist's shows right away
 	tg        *notify.Telegram     // the Telegram bot; nil if not configured
 	botName   string               // the bot's username, for t.me links
+	google    GoogleConfig         // Google sign-in
+	http      *http.Client         // for requests to Google
 }
 
 // pageData is everything a page template can show.
@@ -49,7 +62,7 @@ type pageData struct {
 }
 
 // NewServer loads the pages and registers every route.
-func NewServer(db *store.Store, tm *ticketmaster.Client, wk *worker.Worker, tg *notify.Telegram, botName string) (*Server, error) {
+func NewServer(cfg Config) (*Server, error) {
 	// Helpers like showDate must be registered before the pages are parsed,
 	// otherwise Go won't know what {{showDate .}} means.
 	templates, err := template.New("").Funcs(templateFuncs).ParseFS(templateFiles, "templates/*.html")
@@ -65,11 +78,13 @@ func NewServer(db *store.Store, tm *ticketmaster.Client, wk *worker.Worker, tg *
 	s := &Server{
 		mux:       http.NewServeMux(),
 		templates: templates,
-		db:        db,
-		tm:        tm,
-		worker:    wk,
-		tg:        tg,
-		botName:   botName,
+		db:        cfg.DB,
+		tm:        cfg.Ticketmaster,
+		worker:    cfg.Worker,
+		tg:        cfg.Telegram,
+		botName:   cfg.BotName,
+		google:    cfg.Google,
+		http:      &http.Client{Timeout: 10 * time.Second},
 	}
 
 	// CSS and other files are sent as they are.
@@ -84,6 +99,10 @@ func NewServer(db *store.Store, tm *ticketmaster.Client, wk *worker.Worker, tg *
 	s.mux.HandleFunc("POST /signup", s.handleSignup)
 	s.mux.HandleFunc("POST /login", s.handleLogin)
 	s.mux.HandleFunc("POST /logout", s.handleLogout)
+
+	// Sign in with Google (google.go).
+	s.mux.HandleFunc("GET /auth/google", s.guestOnly(s.handleGoogleStart))
+	s.mux.HandleFunc("GET /auth/google/callback", s.handleGoogleCallback)
 
 	// Dashboard pages: only for logged-in users.
 	s.mux.HandleFunc("GET /shows", s.requireUser(s.page("shows.html")))
