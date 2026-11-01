@@ -63,6 +63,7 @@ type pageData struct {
 	Error   string        // message shown above a form
 	Notice  string        // "Saved." after a settings form
 	Confirm bool          // show the "confirm your email" banner
+	Token   string        // the reset link's token, kept in the reset form
 	Page    string        // which page is shown, e.g. "artists.html"; set by render
 }
 
@@ -130,6 +131,12 @@ func NewServer(cfg Config) (*Server, error) {
 	// Email confirmation (verify.go). The link from the email works logged out.
 	s.mux.HandleFunc("GET /verify-email", s.handleVerifyEmail)
 	s.mux.HandleFunc("POST /signup/resend", s.guestOnly(s.handleResendSignup))
+
+	// Forgot password (reset.go).
+	s.mux.HandleFunc("GET /forgot", s.guestOnly(s.page("forgot.html")))
+	s.mux.HandleFunc("POST /forgot", s.guestOnly(s.handleForgot))
+	s.mux.HandleFunc("GET /reset", s.handleResetForm)
+	s.mux.HandleFunc("POST /reset", s.handleReset)
 	s.mux.HandleFunc("POST /settings/email/resend", s.requireUser(s.handleResendVerification))
 
 	// Telegram (telegram.go).

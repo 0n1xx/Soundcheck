@@ -105,6 +105,16 @@ CREATE TABLE IF NOT EXISTS soundcheck.email_tokens (
     expires_at TIMESTAMPTZ NOT NULL
 );
 
+-- One-time "reset your password" links, valid for an hour. Built like
+-- email_tokens: only a hash of the token, plus the address it was sent to.
+CREATE TABLE IF NOT EXISTS soundcheck.password_resets (
+    token_hash TEXT PRIMARY KEY,
+    user_id    BIGINT NOT NULL REFERENCES soundcheck.users(id) ON DELETE CASCADE,
+    email      TEXT NOT NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    expires_at TIMESTAMPTZ NOT NULL
+);
+
 -- Alerts already sent, so nobody gets the same one twice.
 -- kind is "new", "onsale_24h", "onsale_15m", "cancelled", "rescheduled"...
 CREATE TABLE IF NOT EXISTS soundcheck.sent_alerts (

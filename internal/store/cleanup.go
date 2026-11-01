@@ -31,6 +31,7 @@ func (s *Store) Cleanup(ctx context.Context) error {
 
 		// Email confirmation links live for 24 hours.
 		{"expired email links", `DELETE FROM email_tokens WHERE expires_at < now()`},
+		{"expired reset links", `DELETE FROM password_resets WHERE expires_at < now()`},
 
 		// Concerts that ended over a month ago, and the alerts sent about them.
 		// The alerts go first: they point at the concerts by ID.
